@@ -1,4 +1,17 @@
-# akorn_prv
+# Artificial Kuramoto Oscillatory Neurons (AKOrN)
+
+<p align="center">
+  <a href="https://takerum.github.io/">Takeru Miyato</a>
+  ·
+  <a href="https://sindylowe.com/">Sindy Löwe</a>
+  ·
+  <a href="https://www.cvlibs.net/">Andreas Geiger</a>
+   ·
+  <a href="https://staff.fnwi.uva.nl/m.welling/">Max Welling</a>
+</p>
+  <h3 align="center"> <a href="https://arxiv.org/abs/2410.13821">arXiv</a> </h3>
+
+Currently, only CLEVR-Tex experiments have been uploaded. We will later add the code for reproducing the other experiments.
 
 ## Setup Conda env
 
