@@ -11,7 +11,7 @@
 </p>
   <h3 align="center"> <a href="https://arxiv.org/abs/2410.13821">arXiv</a> </h3>
 
-Currently, only CLEVR-Tex experiments have been uploaded. We will later add the code for reproducing the other experiments.
+Currently, only the CLEVR-Tex experiments have been uploaded. We will later add the code for reproducing the other experiments.
 
 ## Setup Conda env
 
