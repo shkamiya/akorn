@@ -1,4 +1,8 @@
 # Artificial Kuramoto Oscillatory Neurons (AKOrN)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/62af0387-d410-4250-bfb0-0099f3412409">
+</p>
+
 
 <p align="center">
   <a href="https://takerum.github.io/">Takeru Miyato</a>
