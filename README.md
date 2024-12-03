@@ -15,8 +15,8 @@
 </p>
   <h3 align="center"> <a href="https://arxiv.org/abs/2410.13821">arXiv</a> </h3>
 
-This page contains an initial env setup and code for the CLEVR-Tex experiments. 
-- Code for other synthetic datasets (Tetrominoes, dSprits, CLEVR) is [here](xx)
+This page contains the initial environment setup and code for the CLEVR-Tex experiments.
+- Code for other synthetic datasets (Tetrominoes, dSprits, CLEVR) is [here](https://github.com/autonomousvision/akorn/blob/main/scripts/synths.md)
 
 ## Setup Conda env
 
@@ -44,8 +44,9 @@ export NUM_GPUS=<number_of_gpus> # If you use a single GPU, run a command withou
 ```
 export L=1 # The number of layers. L=1 or 2. This can be >2, but we only experimented with a single or two-layer model.
 accelerate launch --multi-gpu --num_processes=$NUM_GPUS  train_obj.py --exp_name=clvtex_akorn --data_root=./data/clevrtex_full/ --model=akorn --data=clevrtex_full --J=attn --L=${L}
+
 # Larger model (L=2, ch=512, bs=512)
-accelerate launch --multi-gpu --num_processes=$NUM_GPUS  train_obj.py --exp_name=clvtex_large_akorn --data_root=./data/clevrtex_full/ --model=akorn --data=clevrtex_full --J=attn --L=${L} --ch=512 --batchsize=512 --epochs=1024 --lr=0.0005
+accelerate launch --multi-gpu --num_processes=$NUM_GPUS  train_obj.py --exp_name=clvtex_large_akorn --data_root=./data/clevrtex_full/ --model=akorn --data=clevrtex_full --J=attn --L=2 --ch=512 --batchsize=512 --epochs=1024 --lr=0.0005
 ```
 
 #### ItrSA
@@ -76,11 +77,14 @@ python eval_obj.py  --data_root=./data/clevrtex_${DATA_TYPE}/  --saccade_r=4 --m
 #### Performance table
 | Model                              | CLEVRTex FG-ARI | CLEVRTex MBO | OOD FG-ARI | OOD MBO | CAMO FG-ARI | CAMO MBO |
 |------------------------------------|-----------------|--------------|------------|---------|-------------|----------|
-| ViT                                | 46.4$\pm$0.6   | 25.1$\pm$0.7 | 27.2$\pm$0.5 | 16.1$\pm$1.1 | 32.5$\pm$0.6 | 16.1$\pm$1.1 |
-| ItrSA ($L = 1, T = 8$)            | 65.7$\pm$0.3   | 44.6$\pm$0.9 | 45.1$\pm$0.4 | 30.2$\pm$0.8 | 49.0$\pm$0.7 | 30.2$\pm$0.8 |
-| ItrSA ($L = 2, T = 8$)            | 76.3$\pm$0.4   | 48.5$\pm$0.1 | 46.4$\pm$0.5 | 37.1$\pm$0.5 | 61.9$\pm$1.3 | 37.1$\pm$0.5 |
-| AKOrN$^\text{attn}$ ($L = 1, T = 8$) | 75.6$\pm$0.2 | 55.0$\pm$0.0 | 56.1$\pm$1.1 | 44.3$\pm$0.9 | 59.9$\pm$0.1 | 44.3$\pm$0.9 |
-| AKOrN$^\text{attn}$ ($L = 2, T = 8$) | 80.5$\pm$1.5 | 54.9$\pm$0.6 | 55.7$\pm$0.5 | 46.2$\pm$0.9 | 67.7$\pm$1.5 | 46.2$\pm$0.9 |
-| (+up-tiling ($\times 4$))          |                 |              |             |          |              |          |
-| AKOrN$^\text{attn}$ ($L = 2, T = 8$) | 87.7$\pm$1.0 | 55.3$\pm$2.1 | 55.6$\pm$1.5 | 45.6$\pm$3.4 | 74.5$\pm$1.2 | 45.6$\pm$3.4 |
-| Large AKOrN$^\text{attn}$ ($L = 2, T = 8$) | 88.5$\pm$0.9 | 59.7$\pm$0.9 | 60.8$\pm$0.6 | 53.4$\pm$0.7 | 77.0$\pm$0.5 | 53.4$\pm$0.7 |
+| ViT                                | 46.4±0.6        | 25.1±0.7     | 27.2±0.5   | 16.1±1.1 | 32.5±0.6    | 16.1±1.1 |
+| ItrSA (L = 1)              | 65.7±0.3        | 44.6±0.9     | 45.1±0.4   | 30.2±0.8 | 49.0±0.7    | 30.2±0.8 |
+| ItrSA (L = 2)              | 76.3±0.4        | 48.5±0.1     | 46.4±0.5   | 37.1±0.5 | 61.9±1.3    | 37.1±0.5 |
+| AKOrN (attn, L = 1)         | 75.6±0.2        | 55.0±0.0     | 56.1±1.1   | 44.3±0.9 | 59.9±0.1    | 44.3±0.9 |
+| AKOrN (attn, L = 1)              | 80.5±1.5        | 54.9±0.6     | 55.7±0.5   | 46.2±0.9 | 67.7±1.5    | 46.2±0.9 |
+
+##### With Up-tiling (x4)
+| Model                              | CLEVRTex FG-ARI | CLEVRTex MBO | OOD FG-ARI | OOD MBO | CAMO FG-ARI | CAMO MBO |
+|------------------------------------|-----------------|--------------|------------|---------|-------------|----------|
+| AKOrN (attn, L = 2)            | 87.7±1.0        | 55.3±2.1     | 55.6±1.5   | 45.6±3.4 | 74.5±1.2    | 45.6±3.4 |
+| Large AKOrN (attn, L = 2)       | 88.5±0.9        | 59.7±0.9     | 60.8±0.6   | 53.4±0.7 | 77.0±0.5    | 53.4±0.7 |
