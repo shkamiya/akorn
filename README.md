@@ -63,15 +63,15 @@ accelerate launch --multi-gpu --num_processes=$NUM_GPUS  train_obj.py --exp_name
 export DATA_TYPE=full #{full, outd, camo}
 export L=1
 # AKOrN
-python eval_obj.py  --data_root=./data/clevrtex_${DATA_TYPE}/  --model=akorn  --data=clevrtex_${DATA_TYPE} --J=attn --L=$L$ --model_path=runs/clvtex_akorn/ema_499.pth --model_imsize=128
+python eval_obj.py  --data_root=./data/clevrtex_${DATA_TYPE}/  --model=akorn  --data=clevrtex_${DATA_TYPE} --J=attn --L=${L} --model_path=runs/clvtex_akorn/ema_499.pth --model_imsize=128
 # ItrSA
-python eval_obj.py  --data_root=./data/clevrtex_${DATA_TYPE}/  --model=vit  --data=clevrtex_${DATA_TYPE} --gta=False --L=$L$ --model_path=runs/clvtex_itrsa/ema_499.pth --model_imsize=128
+python eval_obj.py  --data_root=./data/clevrtex_${DATA_TYPE}/  --model=vit  --data=clevrtex_${DATA_TYPE} --gta=False --L=${L} --model_path=runs/clvtex_itrsa/ema_499.pth --model_imsize=128
 ```
 
 ### Eval with Up-tiling (See Appendix section).
 ```
 # Might take long time depending on the CPU spec
-python eval_obj.py  --data_root=./data/clevrtex_${DATA_TYPE}/  --saccade_r=4 --model=akorn  --data=clevrtex_${DATA_TYPE} --J=attn --L=$L$ --model_path=runs/clvtex_akorn/ema_499.pth --model_imsize=128
+python eval_obj.py  --data_root=./data/clevrtex_${DATA_TYPE}/  --saccade_r=4 --model=akorn  --data=clevrtex_${DATA_TYPE} --J=attn --L=${L} --model_path=runs/clvtex_akorn/ema_499.pth --model_imsize=128
 ```
 
 #### Performance table
