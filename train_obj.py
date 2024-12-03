@@ -78,7 +78,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--checkpoint_every",
         type=int,
-        default=100,
+        default=50,
         help="save checkpoint every specified epochs",
     )
     parser.add_argument("--lr", type=float, default=1e-3, help="lr")
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         "--data_root",
         type=str,
         default=None,
-        help="optional. you can specify the dir path if the default path of each dataset is not appropritate one. Currently only applied to ImageNet",
+        help="Optional. Specify the root dir of the dataset. If None, use a default path set for each dataset",
     )
     parser.add_argument("--batchsize", type=int, default=256)
     parser.add_argument("--num_workers", type=int, default=8)
@@ -115,8 +115,8 @@ if __name__ == "__main__":
     parser.add_argument("--temp", type=float, default=0.1, help="simclr temperature.")
 
     # General model options
-    parser.add_argument("--model", type=str, default="knet", help="model")
-    parser.add_argument("--L", type=int, default=2, help="num of layers")
+    parser.add_argument("--model", type=str, default="akorn", help="model")
+    parser.add_argument("--L", type=int, default=1, help="num of layers")
     parser.add_argument("--ch", type=int, default=256, help="num of channels")
     parser.add_argument(
         "--model_imsize",
@@ -124,8 +124,7 @@ if __name__ == "__main__":
         default=None,
         help=
         """
-        Model's imsize that was set when it was initialized. 
-        This is used when you want finetune a pretrained model 
+        Model's imsize. This is used when you want finetune a pretrained model 
         that was trained on images with different resolution than the finetune image dataset.
         """
     )
@@ -145,7 +144,8 @@ if __name__ == "__main__":
         default=True,
         help="""
         use Geometric Transform Attention (https://github.com/autonomousvision/gta) as positional encoding.
-        If False, use standard absolute positional encoding
+        Note that, different from the original GTA, the rotating matrices are learnable.
+        If False, use standard absolute positional encoding used in the original transformer paper.
         """,
     )
 
@@ -159,7 +159,7 @@ if __name__ == "__main__":
         "--c_norm",
         type=str,
         default="gn",
-        help="normalization. gn, sandb(scale and bias), or none",
+        help="normalization. gn(GroupNorm), sandb(scale and bias), or none",
     )
     parser.add_argument(
         "--init_omg", type=float, default=0.01, help="initial omega length"
@@ -291,7 +291,7 @@ if __name__ == "__main__":
             L=args.L,
             T=args.T,
             gamma=args.gamma,
-            J=args.J,  # "conv" or "attention",
+            J=args.J,  # "conv" or "attn",
             use_omega=args.use_omega,
             global_omg=args.global_omg,
             c_norm=args.c_norm,
@@ -310,7 +310,7 @@ if __name__ == "__main__":
 
     elif args.model == "vit":
         from source.models.objs.vit import ViT
-        # ItrSA if T > 1. Otherwise, it becomesa a standard transformer
+        # T=1: ViT. T > 1: ItrSA. 
         net = ViT(
             psize=args.psize,
             imsize=imsize if args.model_imsize is None else args.model_imsize,
