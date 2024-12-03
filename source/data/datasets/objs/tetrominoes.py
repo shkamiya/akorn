@@ -7,13 +7,13 @@ import torchvision
 from torchvision import transforms
 from PIL import Image
 
-from source.data.augs import simclr_aug
+from source.data.augs import simclr_augmentation
 from source.data.datasets.objs.npdataset import NumpyDataset, PairDataset
 
 
 def get_tetrominoes_pair(root, split="train", imsize=32, hflip=False):
     path = Path(root, f"tetrominoes_{split}.npz")
-    return PairDataset(path, transform=simclr_aug(imsize=imsize, hflip=hflip))
+    return PairDataset(path, transform=simclr_augmentation(imsize=imsize, hflip=hflip))
 
 
 def get_tetrominoes(root, split="train"):

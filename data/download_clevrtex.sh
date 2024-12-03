@@ -1,4 +1,6 @@
 #!/bin/bash
+
+##### Download CLEVRTEX dataset.
 urls=(
     "https://thor.robots.ox.ac.uk/datasets/clevrtex/clevrtex_full_part1.tar.gz"
     "https://thor.robots.ox.ac.uk/datasets/clevrtex/clevrtex_full_part2.tar.gz"
@@ -9,7 +11,7 @@ urls=(
     "https://thor.robots.ox.ac.uk/datasets/clevrtex/clevrtex_camo.tar.gz"
 )
 
-output_dir="data"
+output_dir="./"
 
 mkdir -p $output_dir
 
@@ -26,4 +28,3 @@ for url in "${urls[@]}"; do
     rm "$output_dir/$filename"
 done
 
-echo "All files downloaded and extracted to $output_dir."
