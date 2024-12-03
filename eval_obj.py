@@ -307,7 +307,7 @@ if __name__ == "__main__":
 
     # Eval options
     parser.add_argument("--model_path", type=str, help="path to the model")
-    parser.add_argument("--saccade_r", type=int, default=1)
+    parser.add_argument("--saccade_r", type=int, default=1, help="Uptiling factor")
     parser.add_argument("--pca", type=str2bool, default=True)
 
     # Data loading
