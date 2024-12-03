@@ -26,10 +26,19 @@ conda activate akorn
 pip3 install -r requirements.txt
 ```
 
+<<<<<<< HEAD
 ## Donwload the CLEVRTex dataset
 ```
 cd data
 bash download_clevrtex.sh
+=======
+## Donwload Synthetic datasets
+```
+cd data
+bash download_synths.sh
+bash download_clevrtex.sh
+python create_shapes.py # create Shapes dataset 
+>>>>>>> e6ef32db5e5ef7175f5ea8272e369ffa2319a11e
 cd ..
 ```
 
@@ -73,6 +82,7 @@ python eval_obj.py  --data_root=./data/clevrtex_${DATA_TYPE}/  --model=vit  --da
 python eval_obj.py  --data_root=./data/clevrtex_${DATA_TYPE}/  --saccade_r=4 --model=akorn  --data=clevrtex_${DATA_TYPE} --J=attn --L=$L$ --model_path=runs/clvtex_akorn/ema_499.pth --model_imsize=128
 ```
 
+<<<<<<< HEAD
 #### Performance table
 | Model                              | CLEVRTex FG-ARI | CLEVRTex MBO | OOD FG-ARI | OOD MBO | CAMO FG-ARI | CAMO MBO |
 |------------------------------------|-----------------|--------------|------------|---------|-------------|----------|
@@ -84,3 +94,17 @@ python eval_obj.py  --data_root=./data/clevrtex_${DATA_TYPE}/  --saccade_r=4 --m
 | (+up-tiling ($\times 4$))          |                 |              |             |          |              |          |
 | AKOrN$^\text{attn}$ ($L = 2, T = 8$) | 87.7$\pm$1.0 | 55.3$\pm$2.1 | 55.6$\pm$1.5 | 45.6$\pm$3.4 | 74.5$\pm$1.2 | 45.6$\pm$3.4 |
 | Large AKOrN$^\text{attn}$ ($L = 2, T = 8$) | 88.5$\pm$0.9 | 59.7$\pm$0.9 | 60.8$\pm$0.6 | 53.4$\pm$0.7 | 77.0$\pm$0.5 | 53.4$\pm$0.7 |
+=======
+
+#### Performance table
+| Model                              | CLEVRTex FG-ARI | CLEVRTex MBO | OOD FG-ARI | OOD MBO | CAMO FG-ARI | CAMO MBO |
+|------------------------------------|-----------------|--------------|------------|---------|-------------|----------|
+| ViT                                | 46.4\spm{0.6}   | 25.1\spm{0.7}| 27.2\spm{0.5}| 16.1\spm{1.1} | 32.5\spm{0.6} | 16.1\spm{1.1} |
+| ItrSA (\(L = 1\))          | 65.7\spm{0.3}   | 44.6\spm{0.9}| 45.1\spm{0.4}| 30.2\spm{0.8} | 49.0\spm{0.7} | 30.2\spm{0.8} |
+| ItrSA (\(L = 2\))          | 76.3\spm{0.4}   | 48.5\spm{0.1}| 46.4\spm{0.5}| 37.1\spm{0.5} | 61.9\spm{1.3} | 37.1\spm{0.5} |
+| AKOrN\(^\text{attn}\) (\(L = 1\)) | 75.6\spm{0.2} | 55.0\spm{0.0}| 56.1\spm{1.1}| 44.3\spm{0.9} | 59.9\spm{0.1} | 44.3\spm{0.9} |
+| AKOrN\(^\text{attn}\) (\(L = 2\)) | 80.5\spm{1.5} | 54.9\spm{0.6}| 55.7\spm{0.5}| 46.2\spm{0.9} | 67.7\spm{1.5} | 46.2\spm{0.9} |
+| (+up-tiling (\(\times 4\)))        |                 |              |            |         |             |          |
+| AKOrN\(^\text{attn}\) (\(L = 2\)) | 87.7\spm{1.0} | 55.3\spm{2.1}| 55.6\spm{1.5}| 45.6\spm{3.4} | 74.5\spm{1.2} | 45.6\spm{3.4} |
+| Large AKOrN\(^\text{attn}\) (\(L = 2\)) | 88.5\spm{0.9} | 59.7\spm{0.9}| 60.8\spm{0.6}| 53.4\spm{0.7} | 77.0\spm{0.5} | 53.4\spm{0.7} |
+>>>>>>> e6ef32db5e5ef7175f5ea8272e369ffa2319a11e

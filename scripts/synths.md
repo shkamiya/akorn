@@ -1,4 +1,5 @@
 # Artificial Kuramoto Oscillatory Neurons (AKOrN)
+<<<<<<< HEAD
 
 ## Donwload the synthetic datasets (Tetrominoes, dSprits, CLEVR) 
 ```
@@ -9,6 +10,42 @@ cd ..
 ```
 
 
+=======
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/62af0387-d410-4250-bfb0-0099f3412409">
+</p>
+
+
+<p align="center">
+  <a href="https://takerum.github.io/">Takeru Miyato</a>
+  ·
+  <a href="https://sindylowe.com/">Sindy Löwe</a>
+  ·
+  <a href="https://www.cvlibs.net/">Andreas Geiger</a>
+   ·
+  <a href="https://staff.fnwi.uva.nl/m.welling/">Max Welling</a>
+</p>
+  <h3 align="center"> <a href="https://arxiv.org/abs/2410.13821">arXiv</a> </h3>
+
+Currently, only the CLEVR-Tex experiments have been uploaded. We will later add the code for reproducing the other experiments.
+
+## Setup Conda env
+
+```
+yes | conda create -n akorn python=3.12
+conda activate akorn
+pip3 install -r requirements.txt
+```
+
+## Donwload Synthetic datasets
+```
+cd data
+bash download_synths.sh
+python create_shapes.py # create Shapes dataset 
+cd ..
+```
+
+>>>>>>> e6ef32db5e5ef7175f5ea8272e369ffa2319a11e
 ## Training
 ```
 export NUM_GPUS=<number_of_gpus> # If you use a single GPU, run a command without the multi GPU option arguments (`--multi-gpu --num_processes=$NUM_GPUS`).
