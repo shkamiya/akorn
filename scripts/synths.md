@@ -1,5 +1,4 @@
 # Artificial Kuramoto Oscillatory Neurons (AKOrN)
-<<<<<<< HEAD
 
 ## Donwload the synthetic datasets (Tetrominoes, dSprits, CLEVR) 
 ```
@@ -9,43 +8,6 @@ bash download_synths.sh
 cd ..
 ```
 
-
-=======
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/62af0387-d410-4250-bfb0-0099f3412409">
-</p>
-
-
-<p align="center">
-  <a href="https://takerum.github.io/">Takeru Miyato</a>
-  ·
-  <a href="https://sindylowe.com/">Sindy Löwe</a>
-  ·
-  <a href="https://www.cvlibs.net/">Andreas Geiger</a>
-   ·
-  <a href="https://staff.fnwi.uva.nl/m.welling/">Max Welling</a>
-</p>
-  <h3 align="center"> <a href="https://arxiv.org/abs/2410.13821">arXiv</a> </h3>
-
-Currently, only the CLEVR-Tex experiments have been uploaded. We will later add the code for reproducing the other experiments.
-
-## Setup Conda env
-
-```
-yes | conda create -n akorn python=3.12
-conda activate akorn
-pip3 install -r requirements.txt
-```
-
-## Donwload Synthetic datasets
-```
-cd data
-bash download_synths.sh
-python create_shapes.py # create Shapes dataset 
-cd ..
-```
-
->>>>>>> e6ef32db5e5ef7175f5ea8272e369ffa2319a11e
 ## Training
 ```
 export NUM_GPUS=<number_of_gpus> # If you use a single GPU, run a command without the multi GPU option arguments (`--multi-gpu --num_processes=$NUM_GPUS`).
@@ -91,10 +53,9 @@ python eval_obj.py --model=akorn --data=${DATA} --J=attn --L=$L$ --model_path=ru
 #### Performance table
 | Model                   | Tetrominoes FG-ARI | Tetrominoes MBO | dSprites FG-ARI | dSprites MBO | CLEVR FG-ARI | CLEVR MBO |
 |-------------------------|--------------------|-----------------|-----------------|--------------|--------------|-----------|
-| ItrConv                | 59.0\spm{2.9}     | 51.6\spm{2.2}   | 29.1\spm{6.2}   | 38.5\spm{5.2}| 49.3\spm{5.1}| 29.7\spm{3.0} |
-| AKOrN\(^\text{conv}\)  | 76.4\spm{0.8}     | 51.9\spm{1.5}   | 63.8\spm{7.7}   | 50.7\spm{4.7}| 59.0\spm{4.3}| 44.4\spm{2.0} |
-| ItrSA                  | 85.8\spm{0.8}     | 54.9\spm{3.4}   | 68.1\spm{1.4}   | 63.0\spm{1.2}| 82.5\spm{1.7}| 39.4\spm{1.9} |
-| AKOrN\(^\text{attn}\)  | 88.6\spm{1.7}     | 56.4\spm{0.9}   | 78.3\spm{1.3}   | 63.0\spm{1.8}| 91.0\spm{0.5}| 45.5\spm{1.4} |
-| (+up-tiling (\(\times 4\))) |                    |                 |                 |              |              |           |
-| AKOrN\(^\text{attn}\)  | 93.1\spm{0.3}     | 56.3\spm{0.0}   | 87.1\spm{1.0}   | 60.2\spm{1.9}| 94.6\spm{0.7}| 44.7\spm{0.7} |
-
+| ItrConv                | 59.0$\pm$2.9     | 51.6$\pm$2.2   | 29.1$\pm$6.2   | 38.5$\pm$5.2| 49.3$\pm$5.1| 29.7$\pm$3.0 |
+| AKOrN$^\text{conv}$    | 76.4$\pm$0.8     | 51.9$\pm$1.5   | 63.8$\pm$7.7   | 50.7$\pm$4.7| 59.0$\pm$4.3| 44.4$\pm$2.0 |
+| ItrSA                  | 85.8$\pm$0.8     | 54.9$\pm$3.4   | 68.1$\pm$1.4   | 63.0$\pm$1.2| 82.5$\pm$1.7| 39.4$\pm$1.9 |
+| AKOrN$^\text{attn}$    | 88.6$\pm$1.7     | 56.4$\pm$0.9   | 78.3$\pm$1.3   | 63.0$\pm$1.8| 91.0$\pm$0.5| 45.5$\pm$1.4 |
+| (+up-tiling ($\times 4$)) |                    |                 |                 |              |              |           |
+| AKOrN$^\text{attn}$    | 93.1$\pm$0.3     | 56.3$\pm$0.0   | 87.1$\pm$1.0   | 60.2$\pm$1.9| 94.6$\pm$0.7| 44.7$\pm$0.7 |
