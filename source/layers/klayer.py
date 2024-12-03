@@ -85,9 +85,6 @@ class KLayer(nn.Module): # Kuramoto layer
         self.global_omg = global_omg
         self.apply_proj = apply_proj
 
-        if not learn_omg:
-            print("Not learning omega")
-
         self.omg = OmegaLayer(n, ch, init_omg, global_omg, learn_omg) if self.use_omega else nn.Identity()
 
         if J == "conv":
@@ -130,7 +127,7 @@ class KLayer(nn.Module): # Kuramoto layer
 
         omg_x = self.omg(x)
 
-        y = reshape(y, self.n)  #
+        y = reshape(y, self.n) 
         x = reshape(x, self.n)
 
         # project y onto the tangent space
