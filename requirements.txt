@@ -18,4 +18,4 @@ timm
 opencv-python
 pycocotools
 fastcluster
-pip install git+https://github.com/RobustBench/robustbench.git
+git+https://github.com/RobustBench/robustbench.git
