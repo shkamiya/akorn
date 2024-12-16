@@ -16,7 +16,7 @@
   <h3 align="center"> <a href="https://arxiv.org/abs/2410.13821">arXiv</a> </h3>
 
 This page contains the initial environment setup and code for the CLEVR-Tex experiments.
-- Code for other synthetic datasets (Tetrominoes, dSprits, CLEVR) is [here](https://github.com/autonomousvision/akorn/blob/main/scripts/synths.md)
+- Code for other synthetic datasets (Tetrominoes, dSprits, CLEVR): [here](https://github.com/autonomousvision/akorn/blob/main/scripts/synths.md)
 
 ## Setup Conda env
 

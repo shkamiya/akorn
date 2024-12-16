@@ -14,7 +14,7 @@ export NUM_GPUS=<number_of_gpus> # If you use a single GPU, run a command withou
 #### AKOrN (Attentive models)
 ```
 #Tetrominoes 
-export dataset=tetrominoes; accelerate launch --num_processes=${NUM_GPUS} train_obj.py --exp_name=${dataset}_akorn_attn --model=akorn --data=${dataset}  --J=attn --L=1 --T=8 --ch=128 --psize=4 --epochs=50 --c_norm=none
+export dataset=tetrominoes; accelerate launch --num_processes=${NUM_GPUS} train_obj.py --exp_name=${dataset}_akorn_attn --model=akorn --data=${dataset}  --J=attn --L=1 --ch=128 --psize=4 --epochs=50 --c_norm=none
 #dSprites
 export dataset=dsprites; accelerate launch --num_processes=${NUM_GPUS} train_obj.py --exp_name=${dataset}_akorn_attn  --model=akorn --data=${dataset} --J=attn --L=1 --ch=128 --psize=4 --epochs=50 --c_norm=none
 #CLEVR
@@ -24,7 +24,7 @@ export dataset=clevr accelerate launch --num_processes=${NUM_GPUS} train_obj.py 
 #### AKOrN (Convolutional models)
 ```
 #Tetrominoes 
-export dataset=tetrominoes; accelerate launch --num_processes=${NUM_GPUS} train_obj.py --exp_name=${dataset}_akorn_conv --model=akorn --data=${dataset}  --J=conv --L=1 --ksize=5 --T=8 --ch=128 --psize=4 --epochs=50 --c_norm=none
+export dataset=tetrominoes; accelerate launch --num_processes=${NUM_GPUS} train_obj.py --exp_name=${dataset}_akorn_conv --model=akorn --data=${dataset}  --J=conv --L=1 --ksize=5 --ch=128 --psize=4 --epochs=50 --c_norm=none
 #dSprites
 export dataset=dsprites; accelerate launch --num_processes=${NUM_GPUS} train_obj.py --exp_name=${dataset}_akorn_conv  --model=akorn --data=${dataset} --J=conv --L=1 --ksize=7 --ch=128 --psize=4 --epochs=50 --c_norm=none
 #CLEVR
@@ -33,7 +33,6 @@ export dataset=clevr accelerate launch --num_processes=${NUM_GPUS} train_obj.py 
 
 #### ItrSA
 ```
-export L=1
 export dataset=tetrominoes; accelerate launch --multi-gpu --num_processes=$NUM_GPUS  train_obj.py --exp_name=${dataset}_itrsa  --data=${dataset} --model=vit  --L=1 --gta=False --T=8 --ch=128 --psize=4 --epochs=50 
 export dataset=dsprites; accelerate launch --multi-gpu --num_processes=$NUM_GPUS  train_obj.py --exp_name=${dataset}_itrsa  --data=${dataset} --model=vit  --L=1 --gta=False  --T=8 --ch=128 --psize=4 --epochs=50 
 export dataset=clevr; accelerate launch --multi-gpu --num_processes=$NUM_GPUS  train_obj.py --exp_name=${dataset}_itrsa  --data=${dataset} --model=vit  --L=1 --gta=False --T=8 --ch=256 --psize=8 --epochs=300
