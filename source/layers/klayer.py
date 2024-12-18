@@ -58,7 +58,7 @@ class OmegaLayer(nn.Module):
         return omg_x
 
 
-class KLayer(nn.Module): # Kuramoto layer
+class KLayer(nn.Module):  # Kuramoto layer
 
     def __init__(
         self,
@@ -85,7 +85,11 @@ class KLayer(nn.Module): # Kuramoto layer
         self.global_omg = global_omg
         self.apply_proj = apply_proj
 
-        self.omg = OmegaLayer(n, ch, init_omg, global_omg, learn_omg) if self.use_omega else nn.Identity()
+        self.omg = (
+            OmegaLayer(n, ch, init_omg, global_omg, learn_omg)
+            if self.use_omega
+            else nn.Identity()
+        )
 
         if J == "conv":
             self.connectivity = nn.Conv2d(ch, ch, ksize, 1, ksize // 2)
@@ -127,7 +131,7 @@ class KLayer(nn.Module): # Kuramoto layer
 
         omg_x = self.omg(x)
 
-        y = reshape(y, self.n) 
+        y = reshape(y, self.n)
         x = reshape(x, self.n)
 
         # project y onto the tangent space

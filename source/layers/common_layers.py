@@ -111,16 +111,13 @@ class BNReLUConv2d(nn.Module):
         else:
             raise NotImplementedError
 
-        if False:
-            conv = MyConv2d2(inch, outch, kernel_size)
-        else:
-            conv = nn.Conv2d(
-                inch,
-                outch,
-                kernel_size=kernel_size,
-                stride=stride,
-                padding=padding,
-            )
+        conv = nn.Conv2d(
+            inch,
+            outch,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+        )
 
         self.fn = nn.Sequential(
             norm(inch),
@@ -170,10 +167,7 @@ class FF(nn.Module):
         )
 
     def forward(self, x):
-        if self.old:
-            x = self.ff(x)
-        else:
-            x = self.fn(x)
+        x = self.fn(x)
         return x
 
 
