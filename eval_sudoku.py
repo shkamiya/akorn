@@ -1,8 +1,4 @@
 import sys, os
-
-rootdir = os.path.join(os.environ["WORK"], "OscillatoryMachine")
-
-# sys.path.append(rootdir)
 import torch
 import torch.nn
 import torch.optim
