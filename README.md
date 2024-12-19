@@ -17,6 +17,7 @@
 
 This page contains the initial environment setup and code for the CLEVR-Tex experiments.
 - Code for other synthetic datasets (Tetrominoes, dSprits, CLEVR): [here](https://github.com/autonomousvision/akorn/blob/main/scripts/synths.md)
+- Sudoku solving:  [here](https://github.com/autonomousvision/akorn/blob/main/scripts/sudoku.md)
 
 ## Setup Conda env
 
