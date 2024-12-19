@@ -31,7 +31,6 @@ class SudokuAKOrN(nn.Module):
         learn_omg=False,
         nl=True,
         heads=8,
-        pos_enc=False,
     ):
         super().__init__()
         self.n = n
@@ -40,11 +39,6 @@ class SudokuAKOrN(nn.Module):
         self.embedding = nn.Embedding(10, ch)
 
         hw = [9, 9]
-
-        self.pos_enc = pos_enc
-        if pos_enc:
-            self.pemb_x = nn.Parameter(positionalencoding2d(ch, 9, 9).reshape(-1, 9, 9))
-            self.pemb_c = nn.Parameter(positionalencoding2d(ch, 9, 9).reshape(-1, 9, 9))
 
         self.layers = nn.ModuleList()
         for l in range(self.L):
@@ -65,7 +59,7 @@ class SudokuAKOrN(nn.Module):
                             gta=True,
                         ),
                         nn.Sequential(
-                            ReadOutConv(ch, ch, self.n, 1, 1, 0),
+                            ReadOutConv(ch, ch, n, 1, 1, 0),
                             ResBlock(FF(ch, ch, ch, 1, 1, 0)) if nl else nn.Identity(),
                             BNReLUConv2d(ch, ch, 1, 1, 0) if nl else nn.Identity(),
                         ),
@@ -97,10 +91,6 @@ class SudokuAKOrN(nn.Module):
         else:
             n = torch.randn_like(c)
             x = is_input * c + (1 - is_input) * n
-
-        if self.pos_enc:
-            c = c + self.pemb_c[None]
-            x = x + self.pemb_x[None]
 
         for _, (klayer, readout) in enumerate(self.layers):
             # Process x and c.

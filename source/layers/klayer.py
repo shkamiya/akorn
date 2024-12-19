@@ -36,7 +36,7 @@ class OmegaLayer(nn.Module):
             # n is even
             if global_omg:
                 self.omg_param = nn.Parameter(
-                    init_omg * (1 / np.sqrt(n)) * torch.ones(n), requires_grad=learn_omg
+                    init_omg * (1 / np.sqrt(2)) * torch.ones(2), requires_grad=learn_omg
                 )
             else:
                 self.omg_param = nn.Parameter(
@@ -129,7 +129,10 @@ class KLayer(nn.Module):  # Kuramoto layer
         # add bias c.
         y = _y + c
 
-        omg_x = self.omg(x)
+        if hasattr(self, "omg"):
+            omg_x = self.omg(x)
+        else:
+            omg_x = torch.zeros_like(x)
 
         y = reshape(y, self.n)
         x = reshape(x, self.n)
