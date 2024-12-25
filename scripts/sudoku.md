@@ -37,7 +37,7 @@ python eval_sudoku.py --data=${data} --model=akorn --model_path=runs/sudoku_akor
 ### Performance table
 | Model                   | ID | OOD |
 |-------------------------|--------------------|-----------------|
-| Transformer                | 98.6±0.3       | 51.6±2.2       |
+| Transformer                | 98.6±0.3       | 5.2±0.2       |
 | ItrSA ($T_{\rm eval}=32$)           | 95.7±8.5         | 34.4±5.4  |
 | AKOrN ($T_{\rm eval}=128$)             | 100.0±0.0  | 51.7±3.3  |
 | AKOrN ($T_{\rm eval}=128, K=100$)             | 100.0±0.0  | 61.1±14.7 |
