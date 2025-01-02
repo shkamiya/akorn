@@ -109,7 +109,7 @@ if __name__ == "__main__":
         worker_init_fn=worker_init_fn,
     )
     testloader = torch.utils.data.DataLoader(
-        HardSudokuDataset("./data/sudoku-rrn", split='test'),
+        SudokuDataset(rootdir, train=False),
         batch_size=100,
         shuffle=False,
         num_workers=args.num_workers,
