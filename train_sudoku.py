@@ -109,7 +109,7 @@ if __name__ == "__main__":
         worker_init_fn=worker_init_fn,
     )
     testloader = torch.utils.data.DataLoader(
-        SudokuDataset(rootdir, train=False),
+        HardSudokuDataset("./data/sudoku-rrn", split='test'),
         batch_size=100,
         shuffle=False,
         num_workers=args.num_workers,
@@ -209,18 +209,15 @@ if __name__ == "__main__":
                 start.record()
 
             out = net(X, is_input)
-            mask = (
-                1 - is_input
-            )  # each element of mask indicates 0 as given digits and 1 as target square to predict
-
+            
             out = out.reshape(-1, 9)
             Y = Y.argmax(dim=-1).reshape(-1)
-            loss = criterion(out, Y)
-            loss = (mask * loss).mean() # only compte
-
+            
+            loss = criterion(out, Y).mean()
+            
             optimizer.zero_grad()
             loss.backward()
-            if args.clip_grad_norm is not None:
+            if args.clip_grad_norm > 0.:
                 torch.nn.utils.clip_grad_norm_(net.parameters(), args.clip_grad_norm)
             optimizer.step()
 
