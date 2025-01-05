@@ -196,8 +196,6 @@ if __name__ == "__main__":
             corrects_vote += board_correct.sum().item()
             totals += board_correct.numel()
 
-        if i>10:
-            break
     # Compute mean and standard deviation across networks
     accuracy_vote = corrects_vote / totals
 
