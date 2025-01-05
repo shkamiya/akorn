@@ -52,6 +52,8 @@ if __name__ == "__main__":
         default=1,
         help="num of random oscillator samples for each input",
     )
+    parser.add_argument("--minimum_chunk", type=int, default=None)
+    parser.add_argument("--evote_type", type=str, default="last", help="last or sum")
     parser.add_argument("--gamma", type=float, default=1.0, help="step size")
     parser.add_argument("--J", type=str, default="attn", help="connectivity")
     parser.add_argument("--use_omega", type=str2bool, default=True)
@@ -81,7 +83,7 @@ if __name__ == "__main__":
                 args.data_root if args.data_root is not None else "./data/sudoku",
                 train=False,
             ),
-            batch_size=100,
+            batch_size=args.batchsize,
             shuffle=False,
             num_workers=args.num_workers,
             worker_init_fn=worker_init_fn,
@@ -92,7 +94,7 @@ if __name__ == "__main__":
                 args.data_root if args.data_root is not None else "./data/sudoku-rrn",
                 split="test",
             ),
-            batch_size=100,
+            batch_size=args.batchsize,
             shuffle=False,
             num_workers=args.num_workers,
             worker_init_fn=worker_init_fn,
@@ -143,24 +145,39 @@ if __name__ == "__main__":
     corrects_avg = 0
     totals = 0
 
+    minimum_chunk = args.minimum_chunk if args.minimum_chunk is not None else K
+
     for i, (X, Y, is_input) in tqdm.tqdm(enumerate(loader)):
         B = X.shape[0]
         if args.model == 'akorn' and K > 1:  # Energy-based voting
             for j in range(B):
-                _X = X[j : j + 1].repeat(K, 1, 1, 1)
-                _Y = Y[j : j + 1].repeat(K, 1, 1, 1)
-                _is_input = is_input[j : j + 1].repeat(K, 1, 1, 1)
-                _X, _Y, _is_input = (
-                    _X.to(torch.int32).cuda(),
-                    _Y.cuda(),
-                    _is_input.cuda(),
-                )
+                preds = []
+                es_list = []
+                for k in range(K//minimum_chunk):
+                    
+                    _X = X[j : j + 1].repeat(minimum_chunk, 1, 1, 1)
+                    _Y = Y[j : j + 1].repeat(minimum_chunk, 1, 1, 1)
+                    _is_input = is_input[j : j + 1].repeat(minimum_chunk, 1, 1, 1)
+                    _X, _Y, _is_input = (
+                        _X.to(torch.int32).cuda(),
+                        _Y.cuda(),
+                        _is_input.cuda(),
+                    )
 
-                with torch.no_grad():
-                    pred, es = model(_X, _is_input, return_es=True)
-                # Standardize
-                _es = es[-1][-1]
-                idxes = torch.argsort(_es)  # minimum energy first
+                    with torch.no_grad():
+                        pred, es = model(_X, _is_input, return_es=True)
+                        preds.append(pred.detach())
+                        if args.evote_type =='sum':
+                            # the sum of energy values over timesteps as board correctness indicator 
+                            es = torch.stack(es[-1], 0).sum(0).detach()
+                        elif args.evote_type == 'last':
+                            es = es[-1][-1].detach()
+                        es_list.append(es)
+                        
+                pred = torch.cat(preds, 0)
+                es = torch.cat(es_list, 0)
+                
+                idxes = torch.argsort(es)  # minimum energy first
                 pred_vote = pred[idxes[:1]].mean(0, keepdim=True)
                 pred_avg = pred.mean(0, keepdim=True)
 
@@ -179,6 +196,8 @@ if __name__ == "__main__":
             corrects_vote += board_correct.sum().item()
             totals += board_correct.numel()
 
+        if i>10:
+            break
     # Compute mean and standard deviation across networks
     accuracy_vote = corrects_vote / totals
 
