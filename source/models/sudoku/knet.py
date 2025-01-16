@@ -102,7 +102,10 @@ class SudokuAKOrN(nn.Module):
             )
             xs.append(_xs)
             es.append(_es)
-            c = readout(_xs[-1])
+            
+            x = _xs[-1]
+            c = readout(x)
+
         return c, xs, es
 
     def forward(self, c, is_input, return_xs=False, return_es=False):
