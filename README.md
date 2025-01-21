@@ -82,7 +82,7 @@ python eval_obj.py  --data_root=./data/clevrtex_${DATA_TYPE}/  --saccade_r=4 --m
 | ItrSA (L = 1)              | 65.7±0.3        | 44.6±0.9     | 64.6±0.8 | 45.1±0.4   | 49.0±0.7    | 30.2±0.8 |
 | ItrSA (L = 2)              | 76.3±0.4        | 48.5±0.1     | 74.9±0.8 | 46.4±0.5   | 61.9±1.3    | 37.1±0.5 |
 | AKOrN (attn, L = 1)         | 75.6±0.2        | 55.0±0.0     | 73.4±0.4 | 56.1±1.1   | 59.9±0.1    | 44.3±0.9 |
-| AKOrN (attn, L = 1)              | 80.5±1.5        | 54.9±0.6     | 79.2±1.2 | 55.7±0.5   | 67.7±1.5    | 46.2±0.9 |
+| AKOrN (attn, L = 2)              | 80.5±1.5        | 54.9±0.6     | 79.2±1.2 | 55.7±0.5   | 67.7±1.5    | 46.2±0.9 |
 
 ##### With Up-tiling (x4)
 | Model                              | CLEVRTex FG-ARI | CLEVRTex MBO | OOD FG-ARI | OOD MBO | CAMO FG-ARI | CAMO MBO |
