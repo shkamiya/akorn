@@ -16,7 +16,7 @@
   <h3 align="center"> <a href="https://arxiv.org/abs/2410.13821">arXiv</a> </h3>
 
 This page contains the initial environment setup and code for the CLEVR-Tex experiments.
-- Minimal AKOrN model on Google Colab (The fish example in the paper) [here](https://colab.research.google.com/drive/1n8x2uskNxRIqJvvNaljWDuLAMvxkw0Qn#scrollTo=_aaXfRcBYE2g)
+- Minimal AKOrN model on Google Colab (The fish example in the paper) [here](https://colab.research.google.com/drive/1n8x2uskNxRIqJvvNaljWDuLAMvxkw0Qn)
 - Code for other synthetic datasets (Tetrominoes, dSprits, CLEVR): [here](https://github.com/autonomousvision/akorn/blob/main/scripts/synths.md)
 - Sudoku solving:  [here](https://github.com/autonomousvision/akorn/blob/main/scripts/sudoku.md)
 
