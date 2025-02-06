@@ -1,10 +1,5 @@
 # Artificial Kuramoto Oscillatory Neurons (AKOrN)
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/62af0387-d410-4250-bfb0-0099f3412409">
-</p>
-
-
-<p align="center">
   <a href="https://takerum.github.io/">Takeru Miyato</a>
   ·
   <a href="https://sindylowe.com/">Sindy Löwe</a>
@@ -13,7 +8,7 @@
    ·
   <a href="https://staff.fnwi.uva.nl/m.welling/">Max Welling</a>
 </p>
-  <h3 align="center"> <a href="https://arxiv.org/abs/2410.13821">arXiv</a> </h3>
+  <h3 align="center"> <a href="https://github.com/takerum/akorn_project_page">[Project page]</a> <a href="https://arxiv.org/abs/2410.13821">[Paper]</a>  </h3>
 
 This page contains instructions for the initial environment setup and code for the CLEVR-Tex experiments.
 - Minimal AKOrN model on Google Colab (The fish example in the paper) [here](https://colab.research.google.com/drive/1n8x2uskNxRIqJvvNaljWDuLAMvxkw0Qn)
