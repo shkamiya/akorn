@@ -10,6 +10,13 @@
 </p>
   <h3 align="center"> <a href="https://takerum.github.io/akorn_project_page/">[Project page]</a> <a href="https://arxiv.org/abs/2410.13821">[Paper]</a>  </h3>
   <h2 align="center"> ICLR2025 (Oral)</h3>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/7f7a6dab-3bf6-4e15-b985-fc98dc1b443a" width="120" height="auto">
+  <img src="https://github.com/user-attachments/assets/72090614-6bf4-484e-807b-d812c67e6385" width="500" height="auto">
+  <img src="https://github.com/user-attachments/assets/f38fc1da-fd4d-4720-8c0e-8fad0c7c97dd" width="100" height="auto">
+</p>
+
+
 
 This page contains instructions for the initial environment setup and code for the CLEVR-Tex experiments.
 - Minimal AKOrN model on Google Colab (The fish example in the paper) [here](https://colab.research.google.com/drive/1n8x2uskNxRIqJvvNaljWDuLAMvxkw0Qn)
