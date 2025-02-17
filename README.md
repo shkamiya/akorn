@@ -40,7 +40,7 @@ cd ..
 
 ## Training
 ```
-export NUM_GPUS=<number_of_gpus> # If you use a single GPU, run a command without the multi GPU option  (`--multi-gpu`).
+export NUM_GPUS=<number_of_gpus> # If you use a single GPU, run a command without the multi GPU option  (remove `--multi-gpu`).
 ```
 
 ### CLEVRTex
