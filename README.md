@@ -31,7 +31,7 @@ conda activate akorn
 pip3 install -r requirements.txt
 ```
 
-## Donwload the CLEVRTex dataset
+## Download the CLEVRTex dataset
 ```
 cd data
 bash download_clevrtex.sh
