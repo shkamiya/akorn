@@ -11,7 +11,7 @@ def gauss_noise_tensor(sigma=0.1):
     return fn
 
 
-def augmentation_strong(noise=0.0, imsize=32):
+def augmentation_strong(imsize=32):
     transform_aug = transforms.Compose(
         [
             transforms.RandomHorizontalFlip(),
@@ -19,7 +19,6 @@ def augmentation_strong(noise=0.0, imsize=32):
             transforms.ColorJitter(0.4, 0.4, 0.4, 0.1),
             transforms.AugMix(),
             transforms.ToTensor(),
-            gauss_noise_tensor(noise) if noise > 0 else lambda x: x,
         ]
     )
     return transform_aug

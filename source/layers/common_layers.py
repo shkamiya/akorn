@@ -66,17 +66,17 @@ class ReadOutConv(nn.Module):
         self,
         inch,
         outch,
-        out_dim,
+        ro_N,
         kernel_size=1,
         stride=1,
         padding=0,
     ):
         super().__init__()
         self.outch = outch
-        self.out_dim = out_dim
+        self.out_dim = ro_N
         self.invconv = nn.Conv2d(
             inch,
-            outch * out_dim,
+            outch * ro_N,
             kernel_size=kernel_size,
             stride=stride,
             padding=padding,
