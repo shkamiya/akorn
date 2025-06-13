@@ -28,7 +28,7 @@ class AKOrN(nn.Module):
         ro_ksize: Readout kernel size
         ro_N: Readout N parameter (int or list)
         norm: Normalization type
-        c_norm: Channel normalization type
+        c_norm: normalization type for condtional stimuli (c in the paper)
         gamma: Gamma parameter
         use_omega: Whether to use omega
         init_omg: Initial omega value
