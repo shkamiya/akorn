@@ -23,7 +23,7 @@ From: nvcr.io/nvidia/pytorch:25.01-py3
         python3-venv \
         python3-wheel \
         python3-setuptools \
-        cython \
+        cython3 \
         build-essential \
 #         git \
 #         wget \
@@ -41,9 +41,6 @@ From: nvcr.io/nvidia/pytorch:25.01-py3
     
     # Install core packages first
     pip install --no-cache-dir \
-    #     torch \
-    #     torchvision \
-    #     torchaudio \
         einops \
         matplotlib \
         tensorboard \
@@ -64,6 +61,9 @@ From: nvcr.io/nvidia/pytorch:25.01-py3
         pillow \
         pyyaml \
         numpy
+    #    torch \
+    #    torchvision \
+    #    torchaudio \
     
     # Install packages from git repositories
     pip install --no-cache-dir git+https://github.com/fra31/auto-attack
