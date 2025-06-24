@@ -1,0 +1,129 @@
+Bootstrap: docker
+From: nvcr.io/nvidia/pytorch:25.01-py3
+
+# %files
+    # source          /workspace/source
+    # requirements.txt /workspace/requirements.txt
+    # train.py        /workspace/train.py
+    # train_classification.py /workspace/train_classification.py
+    # train_obj.py    /workspace/train_obj.py
+    # train_sudoku.py /workspace/train_sudoku.py
+    # eval_obj.py     /workspace/eval_obj.py
+    # eval_sudoku.py  /workspace/eval_sudoku.py
+
+%post
+    set -eux
+    # Update system packages
+    export DEBIAN_FRONTEND=noninteractive
+    export PYTHONNOUSERSITE=True
+    apt-get update -y && apt-get install -y --no-install-recommends \
+        python3 \
+        python3-pip \
+        python3-dev \
+        python3-venv \
+        python3-wheel \
+        python3-setuptools \
+        cython \
+        build-essential \
+#         git \
+#         wget \
+#         curl \
+#         vim \
+#         htop \
+    
+    rm -rf /var/lib/apt/lists/*
+    
+    # Set working directory
+    # cd /workspace
+    
+    # Install Python packages from requirements
+    pip install --no-cache-dir --upgrade pip setuptools wheel
+    
+    # Install core packages first
+    pip install --no-cache-dir \
+    #     torch \
+    #     torchvision \
+    #     torchaudio \
+        einops \
+        matplotlib \
+        tensorboard \
+        tqdm \
+        scipy \
+        scikit-learn \
+        scikit-image \
+        timm \
+        opencv-python-headless \
+        pycocotools \
+        fastcluster \
+        ema_pytorch \
+        accelerate \
+        jupyter \
+        ipykernel \
+        pandas \
+        seaborn \
+        pillow \
+        pyyaml \
+        numpy
+    
+    # Install packages from git repositories
+    pip install --no-cache-dir git+https://github.com/fra31/auto-attack
+    
+    # Install TensorFlow (for some data loading utilities)
+    # pip install --no-cache-dir tensorflow
+    
+    # Create data and results directories
+    # mkdir -p /workspace/data
+    # mkdir -p /workspace/results
+    # mkdir -p /workspace/runs
+    # mkdir -p /workspace/checkpoints
+    
+    # Set permissions
+    # chmod -R 755 /workspace
+
+%environment
+    export LC_ALL=C.UTF-8
+    # Python environment
+    export PYTHONUNBUFFERED=1
+    # export PYTHONPATH=/workspace:$PYTHONPATH
+    # export MPLBACKEND=Agg
+    
+    # # CUDA and PyTorch settings
+    # export CUDA_DEVICE_ORDER=PCI_BUS_ID
+    # export TORCH_HOME=/workspace/.torch
+    
+    # # Optimization for HPC
+    # export OMP_NUM_THREADS=8
+    # export MKL_NUM_THREADS=8
+    # export NUMEXPR_NUM_THREADS=8
+    
+    # # Conda and system paths
+    # export PATH=/opt/conda/bin:$PATH
+    # export LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
+    
+    # # Working directory
+    # export WORKDIR=/workspace
+
+%runscript
+    /bin/bash
+#     echo "AKOrN (Artificial Kuramoto Oscillator Networks) Container"
+#     echo "Usage examples:"
+#     echo "  Classification training: python train_classification.py <exp_name> [options]"
+#     echo "  Object detection:        python train_obj.py <exp_name> [options]"
+#     echo "  Sudoku solving:          python train_sudoku.py <exp_name> [options]"
+#     echo "  Evaluation:              python eval_obj.py [options]"
+#     echo ""
+#     echo "Available datasets: CIFAR-10, CIFAR-100, ImageNet, COCO, etc."
+#     echo "For help with specific scripts, use: python <script_name> --help"
+#     echo ""
+#     echo "Starting in working directory: /workspace"
+#     cd /workspace
+#     exec "$@"
+
+%labels
+    Author "Shunsuke Kamiya"
+    Project "AKOrN - Artificial Kuramoto Oscillator Networks"
+    Version "1.0"
+    Description "Container for training and evaluating AKOrN models on Wisteria HCP"
+    Base "NVIDIA PyTorch 25.01"
+    GPU "CUDA-enabled"
+    HPC "Wisteria-optimized"

@@ -1,1 +1,35 @@
 *.pyc
+＃experimental things
+results/
+data/
+
+# egg info that appears when pip install -e .
+*.egg-info
+
+# caches, checkpoints that PyTorch makes
+*.pt
+*.pth
+
+# __pycache__
+__pycache__/
+*/__pycache__/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# movies and images
+*.mp4
+*.avi
+*.png
+
+# Singularity container files
+*.sif
+singularity/*.sif
+
+# setting files for vscode or PyCharm
+.vscode/
+.idea/
+
+# temporary files
+*.log
+*.tmp
