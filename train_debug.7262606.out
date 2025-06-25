@@ -1,0 +1,70 @@
+15:4: not a valid test operator:  
+15:4: not a valid test operator: 12.8
+21:4: not a valid test operator: (
+21:4: not a valid test operator: 535.54.03
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/work/gb20/b20109/akorn/train_classification.py", line 5, in <module>
+    import torch
+  File "/usr/local/lib/python3.12/dist-packages/torch/__init__.py", line 2183, in <module>
+    from torch import quantization as quantization  # usort: skip
+  File "/usr/local/lib/python3.12/dist-packages/torch/quantization/__init__.py", line 2, in <module>
+    from .fake_quantize import *  # noqa: F403
+  File "/usr/local/lib/python3.12/dist-packages/torch/quantization/fake_quantize.py", line 10, in <module>
+    from torch.ao.quantization.fake_quantize import (
+  File "/usr/local/lib/python3.12/dist-packages/torch/ao/quantization/__init__.py", line 12, in <module>
+    from .pt2e._numeric_debugger import (  # noqa: F401
+  File "/usr/local/lib/python3.12/dist-packages/torch/ao/quantization/pt2e/_numeric_debugger.py", line 8, in <module>
+    from torch.export import ExportedProgram
+  File "/usr/local/lib/python3.12/dist-packages/torch/export/__init__.py", line 68, in <module>
+    from .decomp_utils import CustomDecompTable
+  File "/usr/local/lib/python3.12/dist-packages/torch/export/decomp_utils.py", line 5, in <module>
+    from torch._export.utils import (
+  File "/usr/local/lib/python3.12/dist-packages/torch/_export/__init__.py", line 47, in <module>
+    from .wrappers import _wrap_submodules
+  File "/usr/local/lib/python3.12/dist-packages/torch/_export/wrappers.py", line 7, in <module>
+    from torch._higher_order_ops.strict_mode import strict_mode
+  File "/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/__init__.py", line 1, in <module>
+    from torch._higher_order_ops.cond import cond
+  File "/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py", line 9, in <module>
+    import torch._subclasses.functional_tensor
+  File "/usr/local/lib/python3.12/dist-packages/torch/_subclasses/functional_tensor.py", line 45, in <module>
+    class FunctionalTensor(torch.Tensor):
+  File "/usr/local/lib/python3.12/dist-packages/torch/_subclasses/functional_tensor.py", line 295, in FunctionalTensor
+    cpu = _conversion_method_template(device=torch.device("cpu"))
+/usr/local/lib/python3.12/dist-packages/torch/_subclasses/functional_tensor.py:295: UserWarning: Failed to initialize NumPy: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.2.6 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+ (Triggered internally at /opt/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:81.)
+  cpu = _conversion_method_template(device=torch.device("cpu"))
+usage: train_classification.py [-h] [--epochs EPOCHS]
+                               [--checkpoint_every CHECKPOINT_EVERY] [--lr LR]
+                               [--criterion CRITERION] [--beta BETA]
+                               [--adveval_freq ADVEVAL_FREQ]
+                               [--pgdeval_freq PGDEVAL_FREQ] [--data DATA]
+                               [--batchsize BATCHSIZE] [--n N] [--L L] [--C C]
+                               [--ch CH] [--T T] [--gamma GAMMA] [--J J]
+                               [--ksizes KSIZES [KSIZES ...]]
+                               [--ro_ksize RO_KSIZE] [--ro_N RO_N]
+                               [--norm NORM] [--c_norm C_NORM]
+                               [--use_omega USE_OMEGA] [--init_omg INIT_OMG]
+                               [--global_omg GLOBAL_OMG]
+                               [--learn_omg LEARN_OMG] [--ensemble ENSEMBLE]
+                               [--finetune FINETUNE] [--ignore_size_mismatch]
+                               exp_name
+train_classification.py: error: unrecognized arguments: --batch_size 64
