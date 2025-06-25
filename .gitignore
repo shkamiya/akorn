@@ -10,6 +10,9 @@ data/
 *.pt
 *.pth
 
+# Output of batch jobs
+*.out
+
 # __pycache__
 __pycache__/
 */__pycache__/
