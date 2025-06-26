@@ -23,6 +23,6 @@ singularity exec --nv \
   ~/singularity/kamiya_miyabi.sif \
   python cifar10_akorn_classification.py \
       --experiment-name cifar10_batch \
-      --epochs 10 \
+      --epochs 100 \
       --batch-size 64 \
       --n 2 --ch 32 --L 4 --T 8
