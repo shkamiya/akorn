@@ -1,0 +1,27 @@
+#!/bin/bash
+# ===== PBS リソース =====
+#PBS -q short-a                 # キュー
+#PBS -l select=1                # 1 GPU ノード
+#PBS -l walltime=02:00:00
+#PBS -N akorn_cifar10
+#PBS -j oe                      # stdout+stderr 結合
+#PBS -g gb20                    # グループ
+
+# --- ログは $PBS_O_WORKDIR に出る ---
+cd $PBS_O_WORKDIR               # = pjsub の cd 自動に相当
+
+# --- モジュール & 環境変数 ---
+module load singularity
+
+export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
+export WANDB_PROJECT=akorn-cifar10
+
+# --- 実行 ---
+singularity exec --nv \
+  --bind $(pwd):/workspace \
+  ~/singularity/kamiya_miyabi.sif \
+  python cifar10_akorn_classification.py \
+      --experiment-name cifar10_batch \
+      --epochs 100 \
+      --batch-size 64 \
+      --n 2 --ch 32 --L 4 --T 8

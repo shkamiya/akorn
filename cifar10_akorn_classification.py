@@ -289,7 +289,7 @@ def main():
     
     # Model architecture arguments
     parser.add_argument('--n', type=int, default=2, help='Oscillator dimension (2D for complex oscillators)')
-    parser.add_argument('--ch', type=int, default=64, help='Base number of channels')
+    parser.add_argument('--ch', type=int, default=16, help='Base number of channels')
     parser.add_argument('--L', type=int, default=3, help='Number of layers')
     parser.add_argument('--T', type=int, default=3, help='Number of time steps per layer')
     parser.add_argument('--gamma', type=float, default=1.0, help='Integration step size')

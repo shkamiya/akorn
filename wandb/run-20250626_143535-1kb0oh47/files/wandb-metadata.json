@@ -1,0 +1,50 @@
+{
+  "os":  "macOS-15.3.2-arm64-arm-64bit",
+  "python":  "CPython 3.12.11",
+  "startedAt":  "2025-06-26T05:35:35.889285Z",
+  "args":  [
+    "--n",
+    "2",
+    "--T",
+    "8"
+  ],
+  "program":  "/Users/shunsukekamiya/Desktop/1_Lab/_6_asymmetry/akorn/cifar10_akorn_classification.py",
+  "codePath":  "cifar10_akorn_classification.py",
+  "git":  {
+    "remote":  "git@github.com:shkamiya/akorn.git",
+    "commit":  "267940d5be4ad4368230280cccebc9518ac68c2b"
+  },
+  "email":  "shunsuke.kamiya@weblab.t.u-tokyo.ac.jp",
+  "root":  "/Users/shunsukekamiya/Desktop/1_Lab/_6_asymmetry/akorn",
+  "host":  "Shunsukes-MacBook-Pro.local",
+  "executable":  "/Users/shunsukekamiya/anaconda3/envs/akorn/bin/python3",
+  "codePathLocal":  "cifar10_akorn_classification.py",
+  "cpu_count":  14,
+  "cpu_count_logical":  14,
+  "disk":  {
+    "/":  {
+      "total":  "994662584320",
+      "used":  "863155662848"
+    },
+    "/System/Volumes/Data":  {
+      "total":  "994662584320",
+      "used":  "863155662848"
+    }
+  },
+  "memory":  {
+    "total":  "38654705664"
+  },
+  "cpu":  {
+    "count":  14,
+    "countLogical":  14
+  },
+  "apple":  {
+    "name":  "Apple M4 Max",
+    "ecpuCores":  4,
+    "pcpuCores":  10,
+    "gpuCores":  32,
+    "memoryGb":  36,
+    "swapTotalBytes":  "5368709120",
+    "ramTotalBytes":  "38654705664"
+  }
+}
