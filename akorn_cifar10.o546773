@@ -1,0 +1,11 @@
+Using device: cuda
+GPU: NVIDIA GH200 120GB
+Memory: 101.5 GB
+Parameters saved to: results/parameters.json
+Traceback (most recent call last):
+  File "/work/gj26/b20109/akorn/cifar10_akorn_classification.py", line 622, in <module>
+    main()
+  File "/work/gj26/b20109/akorn/cifar10_akorn_classification.py", line 380, in main
+    wandb.init(
+    ^^^^^^^^^^
+AttributeError: module 'wandb' has no attribute 'init'
