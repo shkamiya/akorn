@@ -83,8 +83,8 @@ def get_config():
         'epochs': 100,
         'lr': 1e-4,
         'weight_decay': 0.0,
-        'warmup_epochs': 5,
-        
+        #'warmup_epochs': 5,
+
         # Logging
         'log_interval': 100,
         'eval_interval': 5,
@@ -309,7 +309,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=100, help='Number of training epochs')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
     parser.add_argument('--weight-decay', type=float, default=0.0, help='Weight decay')
-    parser.add_argument('--warmup-epochs', type=int, default=5, help='Number of warmup epochs')
+    #parser.add_argument('--warmup-epochs', type=int, default=5, help='Number of warmup epochs')
     
     # Logging arguments
     parser.add_argument('--log-interval', type=int, default=100, help='Log every N batches')
@@ -349,7 +349,7 @@ def main():
         'epochs': args.epochs,
         'lr': args.lr,
         'weight_decay': args.weight_decay,
-        'warmup_epochs': args.warmup_epochs,
+        #'warmup_epochs': args.warmup_epochs,
         'log_interval': args.log_interval,
         'eval_interval': args.eval_interval,
         'save_interval': args.save_interval,

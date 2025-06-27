@@ -1,0 +1,80 @@
+_wandb:
+    value:
+        cli_version: 0.20.1
+        m: []
+        python_version: 3.12.3
+        t:
+            "1":
+                - 1
+                - 41
+            "2":
+                - 1
+                - 41
+            "3":
+                - 2
+                - 13
+                - 16
+                - 55
+            "4": 3.12.3
+            "5": 0.20.1
+            "12": 0.20.1
+            "13": linux-aarch64
+J:
+    value: conv
+L:
+    value: 3
+T:
+    value: 8
+batch_size:
+    value: 64
+c_norm:
+    value: gn
+ch:
+    value: 64
+ensemble:
+    value: 1
+epochs:
+    value: 100
+eval_interval:
+    value: 5
+experiment_name:
+    value: akorn_cifar10_ver2
+gamma:
+    value: 1
+global_omg:
+    value: true
+init_omg:
+    value: 1
+ksizes:
+    value:
+        - 9
+        - 7
+        - 5
+learn_omg:
+    value: true
+log_interval:
+    value: 100
+lr:
+    value: 0.0003
+"n":
+    value: 2
+norm:
+    value: bn
+num_classes:
+    value: 10
+num_workers:
+    value: 4
+ro_N:
+    value: 2
+ro_ksize:
+    value: 3
+save_dir:
+    value: ./results
+save_interval:
+    value: 20
+seed:
+    value: 42
+use_omega:
+    value: true
+weight_decay:
+    value: 0

@@ -1,0 +1,25 @@
+#!/bin/bash
+# ===== PBS リソース =====
+#PBS -q short-g
+#PBS -l select=1
+#PBS -l walltime=04:00:00
+#PBS -N miyato_cifar10
+#PBS -j oe
+#PBS -W group_list=gj26
+
+module purge
+module load singularity
+
+# --- ログは $PBS_O_WORKDIR に出る ---
+cd $PBS_O_WORKDIR
+
+# export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
+# export WANDB_PROJECT=miyato_cifar10
+
+# --- 実行 ---
+singularity exec --nv --bind $(pwd):/workspace ~/singularity/kamiya_miyabi.sif \
+  python train_classification.py miyato_cifar10_test \
+      --experiment-name miyato_cifar10 \
+      --epochs 10 \
+      --batch-size 64 \
+      --n 2 --ch 128 --L 3 --T 3
