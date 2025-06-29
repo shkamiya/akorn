@@ -1,0 +1,69 @@
+{
+  "os": "Linux-5.14.0-427.13.1.el9_4.aarch64+64k-aarch64-with-glibc2.39",
+  "python": "CPython 3.12.3",
+  "startedAt": "2025-06-28T22:51:07.418331Z",
+  "args": [
+    "--resume",
+    "results/20250628_553879.opbs/checkpoint_epoch_340.pth",
+    "--wandb-id",
+    "{6zxp331s}",
+    "--save-dir",
+    "results/20250629_555868.opbs",
+    "--wandb-project",
+    "akorn_cifar10_ver2",
+    "--experiment-name",
+    "akorn_cifar10_ver2_resumed",
+    "--epochs",
+    "500",
+    "--batch-size",
+    "64",
+    "--lr",
+    "3e-4",
+    "--n",
+    "2",
+    "--ch",
+    "128",
+    "--L",
+    "3",
+    "--T",
+    "4"
+  ],
+  "program": "/work/gj26/b20109/akorn/cifar10_akorn_classification.py",
+  "codePath": "cifar10_akorn_classification.py",
+  "git": {
+    "remote": "git@github.com:shkamiya/akorn.git",
+    "commit": "49f8459be435052f6a564e1251e6a395de041c6a"
+  },
+  "email": "shunsuke.kamiya@weblab.t.u-tokyo.ac.jp",
+  "root": "/work/gj26/b20109/akorn",
+  "host": "mg0055",
+  "executable": "/usr/bin/python",
+  "codePathLocal": "cifar10_akorn_classification.py",
+  "cpu_count": 72,
+  "cpu_count_logical": 72,
+  "gpu": "NVIDIA GH200 120GB",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "67108864",
+      "used": "196608"
+    }
+  },
+  "memory": {
+    "total": "228163387392"
+  },
+  "cpu": {
+    "count": 72,
+    "countLogical": 72
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GH200 120GB",
+      "memoryTotal": "102625181696",
+      "cudaCores": 16896,
+      "architecture": "Hopper",
+      "uuid": "GPU-e5f1925b-5d02-7bb9-b7b8-d519263d7589"
+    }
+  ],
+  "cudaVersion": "12.8"
+}

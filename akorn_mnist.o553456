@@ -1,0 +1,71 @@
+Using device: cuda
+GPU: NVIDIA GH200 120GB
+Memory: 101.5 GB
+Parameters saved to: results/parameters.json
+wandb: Currently logged in as: shunsuke-kamiya (shunsuke-kamiya-the-university-of-tokyo) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.20.1
+wandb: Run data is saved locally in /work/gj26/b20109/akorn/wandb/run-20250628_072354-3wgb3ae7
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run akorn_mnist_1751063034
+wandb: ⭐️ View project at https://wandb.ai/shunsuke-kamiya-the-university-of-tokyo/akorn-mnist
+wandb: 🚀 View run at https://wandb.ai/shunsuke-kamiya-the-university-of-tokyo/akorn-mnist/runs/3wgb3ae7
+Configuration:
+  batch_size: 64
+  num_workers: 4
+  num_classes: 10
+  n: 2
+  ch: 128
+  L: 3
+  T: 4
+  gamma: 1.0
+  J: conv
+  ksizes: [9, 7, 5]
+  ro_ksize: 3
+  ro_N: 2
+  norm: bn
+  c_norm: gn
+  use_omega: True
+  init_omg: 1.0
+  global_omg: True
+  learn_omg: True
+  ensemble: 1
+  epochs: 100
+  lr: 0.0003
+  weight_decay: 0.0
+  log_interval: 100
+  eval_interval: 5
+  save_interval: 20
+  seed: 42
+  experiment_name: akorn_mnist
+  save_dir: ./results
+
+Creating data loaders...
+  0%|          | 0.00/9.91M [00:00<?, ?B/s]  0%|          | 32.8k/9.91M [00:00<00:54, 180kB/s]  1%|          | 65.5k/9.91M [00:00<00:55, 178kB/s]  1%|▏         | 131k/9.91M [00:00<00:37, 259kB/s]   3%|▎         | 295k/9.91M [00:00<00:18, 507kB/s]  6%|▋         | 623k/9.91M [00:00<00:09, 964kB/s] 13%|█▎        | 1.28M/9.91M [00:01<00:04, 1.84MB/s] 25%|██▌       | 2.52M/9.91M [00:01<00:01, 3.78MB/s] 51%|█████     | 5.08M/9.91M [00:01<00:00, 7.18MB/s] 91%|█████████ | 8.98M/9.91M [00:01<00:00, 10.7MB/s]100%|██████████| 9.91M/9.91M [00:01<00:00, 5.96MB/s]
+  0%|          | 0.00/28.9k [00:00<?, ?B/s]100%|██████████| 28.9k/28.9k [00:00<00:00, 172kB/s]100%|██████████| 28.9k/28.9k [00:00<00:00, 172kB/s]
+  0%|          | 0.00/1.65M [00:00<?, ?B/s]  2%|▏         | 32.8k/1.65M [00:00<00:09, 179kB/s]  4%|▍         | 65.5k/1.65M [00:00<00:08, 178kB/s]  8%|▊         | 131k/1.65M [00:00<00:05, 259kB/s]  20%|█▉        | 328k/1.65M [00:00<00:02, 578kB/s] 38%|███▊      | 623k/1.65M [00:00<00:01, 947kB/s] 78%|███████▊  | 1.28M/1.65M [00:01<00:00, 1.84MB/s]100%|██████████| 1.65M/1.65M [00:01<00:00, 1.49MB/s]
+  0%|          | 0.00/4.54k [00:00<?, ?B/s]100%|██████████| 4.54k/4.54k [00:00<00:00, 16.1MB/s]
+Training samples: 60000
+Test samples: 10000
+
+Creating model...
+Traceback (most recent call last):
+  File "/work/gj26/b20109/akorn/mnist_akorn_classification.py", line 606, in <module>
+    main()
+  File "/work/gj26/b20109/akorn/mnist_akorn_classification.py", line 384, in main
+    model = create_model(config, device)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/gj26/b20109/akorn/mnist_akorn_classification.py", line 131, in create_model
+    model = AKOrN(
+            ^^^^^^
+  File "/work/gj26/b20109/akorn/source/models/classification/knet.py", line 83, in __init__
+    self.layers = self._create_layers(L, channels, strides, hw_sizes, J, ksizes, ro_N, ro_ksize, norm, c_norm, use_omega, init_omg, global_omg, learn_omg)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/gj26/b20109/akorn/source/models/classification/knet.py", line 135, in _create_layers
+    readout_block = self._create_readout_block(channels[l], ro_N[l], ro_ksize, norm)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1935, in __getattr__
+    raise AttributeError(
+AttributeError: 'AKOrN' object has no attribute '_create_readout_block'
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33makorn_mnist_1751063034[0m at: [34mhttps://wandb.ai/shunsuke-kamiya-the-university-of-tokyo/akorn-mnist/runs/3wgb3ae7[0m
+[1;34mwandb[0m: Find logs at: [1;35mwandb/run-20250628_072354-3wgb3ae7/logs[0m

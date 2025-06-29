@@ -16,11 +16,15 @@ cd $PBS_O_WORKDIR
 export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
 export WANDB_PROJECT=akorn-cifar10_ver2
 
+TODAY=$(date '+%Y%m%d')
+
 # --- 実行 ---
 singularity exec --nv \
   --bind $(pwd):/workspace \
   ~/singularity/kamiya_miyabi.sif \
   python cifar10_akorn_classification.py \
+      --save-dir "results/${TODAY}_${PBS_JOBID}" \
+      --wandb-project akorn_cifar10_ver2  \
       --experiment-name akorn_cifar10_ver2 \
       --epochs 400 \
       --batch-size 64 \

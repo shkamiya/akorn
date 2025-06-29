@@ -20,6 +20,8 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import datetime
+#from sched import scheduler 
 
 import torch
 import torch.nn as nn
@@ -55,6 +57,7 @@ def set_seed(seed=42):
 
 def get_config():
     """Get training configuration"""
+
     config = {
         # Data
         'batch_size': 128,
@@ -93,7 +96,7 @@ def get_config():
         # Experiment
         'seed': 42,
         'experiment_name': 'akorn_cifar10',
-        'save_dir': './results',
+        'save_dir': None,
     }
     return config
 
@@ -253,12 +256,13 @@ def evaluate(model, test_loader, criterion, device):
     return test_loss, test_acc, class_accuracies
 
 
-def save_checkpoint_with_config(model, optimizer, epoch, loss, config, filename):
+def save_checkpoint_with_config(model, optimizer, scheduler, epoch, loss, config, filename):
     """Save model checkpoint with configuration"""
     checkpoint = {
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
+        'scheduler_state_dict': scheduler.state_dict(), 
         'loss': loss,
         'config': config
     }
@@ -319,10 +323,16 @@ def main():
     # Experiment arguments
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--experiment-name', type=str, default='akorn_cifar10', help='Experiment name')
-    parser.add_argument('--save-dir', type=str, default='./results', help='Directory to save results')
+    parser.add_argument('--save-dir', type=str, default=None, help='Directory to save results. Defaults to [experiment_name]_[timestamp]')
+    parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint to resume training from')
+    parser.add_argument('--wandb-id', type=str, default=None, help='WandB run ID to resume') # この行を追加
     
     args = parser.parse_args()
     
+    if args.save_dir is None:
+        current_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        args.save_dir = f"./results/{args.experiment_name}_{current_time}"
+
     # Get configuration and override with command line arguments
     config = get_config()
     
@@ -376,12 +386,18 @@ def main():
     save_parameters(config, save_dir)
     
     # Initialize wandb
+    # main関数の中
     if not args.no_wandb:
+        # 再開用のIDを設定
+        resume_id = args.wandb_id if args.resume else None
+
         wandb.init(
             project=args.wandb_project,
             entity=args.wandb_entity,
             config=config,
-            name=f"{config['experiment_name']}_{int(time.time())}"
+            name=f"{config['experiment_name']}_{int(time.time())}",
+            id=resume_id, # この行を追加
+            resume="allow" # この行を追加
         )
     
     # Print configuration
@@ -429,6 +445,22 @@ def main():
         T_max=config['epochs'],
         eta_min=config['lr'] * 0.01
     )
+
+    start_epoch = 0 # 開始エポックを初期化
+
+    # ▼▼▼ このブロックをここに追加 ▼▼▼
+    if args.resume:
+        if os.path.isfile(args.resume):
+            print(f"=> loading checkpoint '{args.resume}'")
+            checkpoint = torch.load(args.resume, map_location=device)
+            model.load_state_dict(checkpoint['model_state_dict'])
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            if 'scheduler_state_dict' in checkpoint: # 古いチェックポイントとの互換性のため
+                scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+            start_epoch = checkpoint['epoch'] + 1
+            print(f"=> loaded checkpoint '{args.resume}' (epoch {checkpoint['epoch']})")
+        else:
+            print(f"=> no checkpoint found at '{args.resume}'")
     
     # Training history
     history = {
@@ -445,7 +477,7 @@ def main():
     print(f"\nStarting training for {config['epochs']} epochs...")
     print("-" * 60)
     
-    for epoch in range(config['epochs']):
+    for epoch in range(start_epoch, config['epochs']):
         # Train
         train_loss, train_acc = train_epoch(
             model, train_loader, criterion, optimizer, device, epoch, config
@@ -499,7 +531,7 @@ def main():
                 best_acc = test_acc
                 best_model_path = save_dir / f'best_model_acc_{best_acc:.2f}.pth'
                 save_checkpoint_with_config(
-                    model, optimizer, epoch, test_loss, config, best_model_path
+                    model, optimizer, scheduler, epoch, test_loss, config, best_model_path
                 )
                 
                 # Log best accuracy to wandb
@@ -512,7 +544,7 @@ def main():
         if (epoch + 1) % config['save_interval'] == 0:
             checkpoint_path = save_dir / f'checkpoint_epoch_{epoch+1}.pth'
             save_checkpoint_with_config(
-                model, optimizer, epoch, train_loss, config, checkpoint_path
+                model, optimizer, scheduler, epoch, train_loss, config, checkpoint_path
             )
     
     total_time = time.time() - start_time

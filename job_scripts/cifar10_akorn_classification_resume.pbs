@@ -1,0 +1,39 @@
+#!/bin/bash
+# ===== PBS リソース =====
+#PBS -q short-g
+#PBS -l select=1
+#PBS -l walltime=04:00:00
+#PBS -N akorn_cifar10_ver2_resume_from_553879
+#PBS -j oe
+#PBS -W group_list=gj26
+
+module purge
+module load singularity
+
+# --- ログは $PBS_O_WORKDIR に出る ---
+cd $PBS_O_WORKDIR
+
+export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
+export WANDB_PROJECT=akorn-cifar10_ver2
+
+TODAY=$(date '+%Y%m%d')
+
+# 再開元のチェックポイントファイルのパス
+RESUME_CHECKPOINT="results/20250628_553879.opbs/checkpoint_epoch_340.pth"
+# 再開元のW&BのRun ID
+WANDB_RUN_ID="6zxp331s"
+
+# --- 実行 ---
+singularity exec --nv \
+  --bind $(pwd):/workspace \
+  ~/singularity/kamiya_miyabi.sif \
+  python cifar10_akorn_classification.py \
+      --resume "${RESUME_CHECKPOINT}" \
+      --wandb-id "{$WANDB_RUN_ID}" \
+      --save-dir "results/${TODAY}_${PBS_JOBID}" \
+      --wandb-project akorn_cifar10_ver2  \
+      --experiment-name akorn_cifar10_ver2_resumed \
+      --epochs 500 \
+      --batch-size 64 \
+      --lr 3e-4 \
+      --n 2 --ch 128 --L 3 --T 4
