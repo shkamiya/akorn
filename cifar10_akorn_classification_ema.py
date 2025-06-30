@@ -265,16 +265,17 @@ def evaluate(model, test_loader, criterion, device):
     return test_loss, test_acc, class_accuracies
 
 
-def save_checkpoint_with_config(model, optimizer, scheduler, epoch, loss, config, filename):
+def save_checkpoint_with_config(model, optimizer, epoch, loss, config, filename, scheduler=None):
     """Save model checkpoint with configuration"""
     checkpoint = {
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-        'scheduler_state_dict': scheduler.state_dict(), 
         'loss': loss,
         'config': config
     }
+    if scheduler:
+        checkpoint['scheduler_state_dict'] = scheduler.state_dict()
     torch.save(checkpoint, filename)
     print(f"Checkpoint saved: {filename}")
 
@@ -481,7 +482,7 @@ def main():
             model.load_state_dict(checkpoint['model_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             if 'scheduler_state_dict' in checkpoint: # 古いチェックポイントとの互換性のため
-                scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+                # scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
             start_epoch = checkpoint['epoch'] + 1
             print(f"=> loaded checkpoint '{args.resume}' (epoch {checkpoint['epoch']})")
         else:
@@ -512,7 +513,7 @@ def main():
         )
         
         # Update learning rate
-        scheduler.step()
+        # scheduler.step()
         current_lr = optimizer.param_groups[0]['lr']
         
         # Record history
@@ -578,7 +579,7 @@ def main():
                 best_ema_acc = ema_test_acc
                 best_ema_model_path = save_dir / f'best_ema_model_acc_{best_ema_acc:.2f}.pth'
                 save_checkpoint_with_config(
-                    ema.ema_model, optimizer, scheduler, epoch, ema_test_loss, config, best_ema_model_path
+                    ema.ema_model, optimizer, epoch, ema_test_loss, config, best_ema_model_path
                 )
 
                 if not args.no_wandb:
