@@ -2,7 +2,7 @@
 #PBS -q short-g
 #PBS -l select=1
 #PBS -l walltime=04:00:00
-#PBS -N akorn_cifar10_ver2
+#PBS -N akorn_cifar10_ema
 #PBS -j oe
 #PBS -W group_list=gj26
 
@@ -13,7 +13,7 @@ module load singularity
 cd $PBS_O_WORKDIR
 
 export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
-export WANDB_PROJECT=akorn-cifar10_ver2
+export WANDB_PROJECT=akorn-cifar10_ema
 
 TODAY=$(date '+%Y%m%d')
 
@@ -21,10 +21,10 @@ TODAY=$(date '+%Y%m%d')
 singularity exec --nv \
   --bind $(pwd):/workspace \
   ~/singularity/kamiya_miyabi.sif \
-  python cifar10_akorn_classification.py \
+  python cifar10_akorn_classification_ema.py \
       --save-dir "results/${TODAY}_${PBS_JOBID}" \
-      --wandb-project akorn_cifar10_ver2  \
-      --experiment-name akorn_cifar10_ver2 \
+      --wandb-project akorn_cifar10_ema  \
+      --experiment-name akorn_cifar10_ema \
       --epochs 100 \
       --batch-size 64 \
       --lr 3e-4 \

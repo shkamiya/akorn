@@ -465,11 +465,11 @@ def main():
     )
     
     # Learning rate scheduler
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, 
-        T_max=config['epochs'],
-        eta_min=config['lr'] * 0.01
-    )
+    # scheduler = optim.lr_scheduler.CosineAnnealingLR(
+    #     optimizer, 
+    #     T_max=config['epochs'],
+    #     eta_min=config['lr'] * 0.01
+    # )
 
     start_epoch = 0 # 開始エポックを初期化
 
