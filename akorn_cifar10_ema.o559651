@@ -1,4 +1,0 @@
-  File "/work/gj26/b20109/akorn/cifar10_akorn_classification_ema.py", line 486
-    start_epoch = checkpoint['epoch'] + 1
-    ^
-IndentationError: expected an indented block after 'if' statement on line 484

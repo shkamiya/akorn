@@ -16,11 +16,13 @@ cd $PBS_O_WORKDIR
 # export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
 # export WANDB_PROJECT=miyato_cifar10
 
+TODAY=$(date '+%Y%m%d')
+
 # --- 実行 ---
 singularity exec --nv --bind $(pwd):/workspace ~/singularity/kamiya_miyabi.sif \
-  python train_classification.py "miyato_vs_mycode" \
+  python train_classification.py "miyato_vs_mycode_${TODAY}_${PBS_JOBID}" \
       --epochs 100 \
       --batchsize 64 \
-      --beta 0.0 \
+      --beta 0.99 \
       --lr 3e-4 \
       --n 2 --ch 128 --L 3 --T 3

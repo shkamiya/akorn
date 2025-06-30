@@ -1,0 +1,25 @@
+Using device: cuda
+GPU: NVIDIA GH200 120GB
+Memory: 101.5 GB
+Parameters saved to: results/20250630_559777.opbs/parameters.json
+wandb: Currently logged in as: shunsuke-kamiya (shunsuke-kamiya-the-university-of-tokyo) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: ERROR Failed to get resume status for run 3exwnb7t: api: failed sending: POST https://api.wandb.ai/graphql giving up after 1 attempt(s): Post "https://api.wandb.ai/graphql": tls: failed to verify certificate: x509: certificate signed by unknown authority
+Traceback (most recent call last):
+  File "/work/gj26/b20109/akorn/cifar10_akorn_classification_ema.py", line 743, in <module>
+    main()
+  File "/work/gj26/b20109/akorn/cifar10_akorn_classification_ema.py", line 412, in main
+    wandb.init(
+  File "/work/gj26/b20109/.local/lib/python3.12/site-packages/wandb/sdk/wandb_init.py", line 1623, in init
+    wandb._sentry.reraise(e)
+  File "/work/gj26/b20109/.local/lib/python3.12/site-packages/wandb/analytics/sentry.py", line 156, in reraise
+    raise exc.with_traceback(sys.exc_info()[2])
+  File "/work/gj26/b20109/.local/lib/python3.12/site-packages/wandb/sdk/wandb_init.py", line 1609, in init
+    return wi.init(run_settings, run_config, run_printer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/gj26/b20109/.local/lib/python3.12/site-packages/wandb/sdk/wandb_init.py", line 1021, in init
+    raise error
+wandb.errors.errors.CommError: Failed to get resume status for run 3exwnb7t: api: failed sending: POST https://api.wandb.ai/graphql giving up after 1 attempt(s): Post "https://api.wandb.ai/graphql": tls: failed to verify certificate: x509: certificate signed by unknown authority
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33makorn_cifar10_ema_1751259936[0m at: [34m[0m
+[1;34mwandb[0m: Find logs at: [1;35mwandb/run-20250630_140536-3exwnb7t/logs[0m
+ok

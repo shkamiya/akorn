@@ -12,6 +12,7 @@ module load singularity
 # --- ログは $PBS_O_WORKDIR に出る ---
 cd $PBS_O_WORKDIR
 
+export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
 export WANDB_PROJECT=akorn-cifar10_ema
 
@@ -20,6 +21,7 @@ TODAY=$(date '+%Y%m%d')
 # --- 実行 ---
 singularity exec --nv \
   --bind $(pwd):/workspace \
+  --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
   ~/singularity/kamiya_miyabi.sif \
   python cifar10_akorn_classification_ema.py \
       --save-dir "results/${TODAY}_${PBS_JOBID}" \
@@ -33,6 +35,10 @@ singularity exec --nv \
 STATUS=$?   # 0=正常, それ以外=異常
 
 # ---- Slack 通知 ----
+
+JOB_NAME=$PBS_JOB_NAME
+JOB_ID=$PBS_JOBID
+NODE_NAME=$(hostname)
 
 send_slack() {         # 小さなヘルパー関数
   curl -s -X POST -H 'Content-type: application/json' \
