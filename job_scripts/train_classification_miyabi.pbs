@@ -18,7 +18,9 @@ cd $PBS_O_WORKDIR
 
 # --- 実行 ---
 singularity exec --nv --bind $(pwd):/workspace ~/singularity/kamiya_miyabi.sif \
-  python train_classification.py "miyato_cifar10" \
+  python train_classification.py "miyato_vs_mycode" \
       --epochs 100 \
       --batchsize 64 \
+      --beta 0.0 \
+      --lr 3e-4 \
       --n 2 --ch 128 --L 3 --T 3
