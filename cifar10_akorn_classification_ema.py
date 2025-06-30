@@ -481,8 +481,8 @@ def main():
             checkpoint = torch.load(args.resume, map_location=device)
             model.load_state_dict(checkpoint['model_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            if 'scheduler_state_dict' in checkpoint: # 古いチェックポイントとの互換性のため
-                # scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+            # if 'scheduler_state_dict' in checkpoint: # 古いチェックポイントとの互換性のため
+            #     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
             start_epoch = checkpoint['epoch'] + 1
             print(f"=> loaded checkpoint '{args.resume}' (epoch {checkpoint['epoch']})")
         else:
@@ -568,7 +568,7 @@ def main():
                 best_acc = test_acc
                 best_model_path = save_dir / f'best_model_acc_{best_acc:.2f}.pth'
                 save_checkpoint_with_config(
-                    model, optimizer, scheduler, epoch, test_loss, config, best_model_path
+                    model, optimizer, epoch, test_loss, config, best_model_path
                 )
                 
                 # Log best accuracy to wandb
@@ -591,11 +591,11 @@ def main():
         if (epoch + 1) % config['save_interval'] == 0:
             checkpoint_path = save_dir / f'checkpoint_epoch_{epoch+1}.pth'
             save_checkpoint_with_config(
-                model, optimizer, scheduler, epoch, train_loss, config, checkpoint_path
+                model, optimizer, epoch, train_loss, config, checkpoint_path
             )
             ema_checkpoint_path = save_dir / f'ema_checkpoint_epoch_{epoch+1}.pth'
             save_checkpoint_with_config(
-                ema.ema_model, optimizer, scheduler, epoch, train_loss, config, ema_checkpoint_path
+                ema.ema_model, optimizer, epoch, train_loss, config, ema_checkpoint_path
             )
     
     total_time = time.time() - start_time

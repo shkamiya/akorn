@@ -29,3 +29,20 @@ singularity exec --nv \
       --batch-size 64 \
       --lr 3e-4 \
       --n 2 --ch 128 --L 3 --T 3
+
+STATUS=$?   # 0=正常, それ以外=異常
+
+# ---- Slack 通知 ----
+
+send_slack() {         # 小さなヘルパー関数
+  curl -s -X POST -H 'Content-type: application/json' \
+       --data "{\"text\":\"$1\"}" "$SLACK_WEBHOOK"
+}
+
+if [ "$STATUS" -eq 0 ]; then
+    MESSAGE="✅ *Job Finished Successfully*\n> Job Name: \`$JOB_NAME\`\n> Job ID: \`$JOB_ID\`\n> Node: \`$NODE_NAME\`"
+    send_slack "$MESSAGE"
+else
+    MESSAGE="❌ *Job Failed*\n> Job Name: \`$JOB_NAME\`\n> Job ID: \`$JOB_ID\`\n> Node: \`$NODE_NAME\`\n> Exit Code: \`$STATUS\`"
+    send_slack "$MESSAGE"
+fi
