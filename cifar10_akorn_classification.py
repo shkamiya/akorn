@@ -21,7 +21,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import datetime
-#from sched import scheduler 
 
 import torch
 import torch.nn as nn
@@ -440,6 +439,10 @@ def main():
     )
     
     # Learning rate scheduler
+    scheduler = optim.lr_scheduler.LambdaLR(
+        optimizer,
+        lr_lambda=lambda epoch: 1.0        # ← 何 epoch たっても lr を変えない
+    )
     # scheduler = optim.lr_scheduler.CosineAnnealingLR(
     #     optimizer, 
     #     T_max=config['epochs'],
@@ -448,7 +451,7 @@ def main():
 
     start_epoch = 0 # 開始エポックを初期化
 
-    # ▼▼▼ このブロックをここに追加 ▼▼▼
+    # Resume from checkpoint if specified
     if args.resume:
         if os.path.isfile(args.resume):
             print(f"=> loading checkpoint '{args.resume}'")

@@ -1,0 +1,1 @@
+{"epoch":0,"_wandb":{"runtime":36},"_runtime":32.457452513,"model/size_mb":112.288836,"model/total_params":28072209,"batch":700,"_timestamp":1.7514093263334749e+09,"_step":8,"train/batch_loss":2.0335142612457275,"model/trainable_params":28072208,"train/batch_acc":25.688748216833094}

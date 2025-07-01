@@ -27,7 +27,7 @@ singularity exec --nv \
       --save-dir "results/${TODAY}_${PBS_JOBID}" \
       --wandb-project akorn_cifar10_ver2  \
       --experiment-name akorn_cifar10_ver2 \
-      --epochs 100 \
+      --epochs 20 \
       --batch-size 64 \
       --lr 1e-4 \
       --n 2 --ch 128 --L 3 --T 3
