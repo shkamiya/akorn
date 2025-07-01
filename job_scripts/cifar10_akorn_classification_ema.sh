@@ -29,7 +29,7 @@ singularity exec --nv \
       --experiment-name akorn_cifar10_ema \
       --epochs 100 \
       --batch-size 64 \
-      --lr 3e-4 \
+      --lr 1e-4 \
       --n 2 --ch 128 --L 3 --T 3
 
 STATUS=$?   # 0=正常, それ以外=異常
