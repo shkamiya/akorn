@@ -65,6 +65,7 @@ class KLayer(nn.Module):  # Kuramoto layer
         n,
         ch,
         J="conv",
+        J_bias=True,      # added by SK on Jul 4, 2025
         c_norm="gn",
         use_omega=False,
         init_omg=1.0,
@@ -92,7 +93,7 @@ class KLayer(nn.Module):  # Kuramoto layer
         )
 
         if J == "conv":
-            self.connectivity = nn.Conv2d(ch, ch, ksize, 1, ksize // 2)
+            self.connectivity = nn.Conv2d(ch, ch, ksize, 1, ksize // 2, bias=J_bias)
             self.x_type = "image"
         elif J == "attn":
             self.connectivity = Attention(
