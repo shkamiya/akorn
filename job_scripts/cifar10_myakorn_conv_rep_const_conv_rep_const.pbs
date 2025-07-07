@@ -2,7 +2,7 @@
 #PBS -q short-g
 #PBS -l select=1
 #PBS -l walltime=04:00:00
-#PBS -N my_akorn_cifar10
+#PBS -N myakorn_cifar10_conv_rep_const
 #PBS -j oe
 #PBS -W group_list=gj26
 
@@ -14,7 +14,7 @@ cd $PBS_O_WORKDIR
 
 export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
-export WANDB_PROJECT=my_akorn-cifar10
+export WANDB_PROJECT=my_akorn-cifar10_conv_rep_const
 
 TODAY=$(date '+%Y%m%d')
 
@@ -25,12 +25,13 @@ singularity exec --nv \
   ~/singularity/kamiya_miyabi.sif \
   python cifar10_myakorn_classification.py \
       --save-dir "results/${TODAY}_${PBS_JOBID}" \
-      --wandb-project my_akorn_cifar10  \
-      --experiment-name my_akorn_cifar10 \
-      --epochs 100 \
+      --wandb-project my_akorn_cifar10_conv_rep_const  \
+      --experiment-name my_akorn_cifar10_conv_rep_const \
+      --J 'conv_repeated_const' \
+      --epochs 10 \
       --batch-size 64 \
       --lr 1e-4 \
-      --n 2 --ch 128 --L 3 --T 32 --J_bias False --global-omg False --gamma 0.1
+      --n 2 --ch 256 --L 3 --T 8 --J_bias False --global-omg False
 
 STATUS=$?   # 0=正常, それ以外=異常
 

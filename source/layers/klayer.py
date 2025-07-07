@@ -95,6 +95,8 @@ class KLayer(nn.Module):  # Kuramoto layer
         if J == "conv":
             self.connectivity = nn.Conv2d(ch, ch, ksize, 1, ksize // 2, bias=J_bias)
             self.x_type = "image"
+        elif J == "conv_repeated_const":    # Added by SK on Jul 4 2025
+            self.connectivity = RepeatedConv2d(n, ch, ch, ksize, 1, ksize//2, bias=J_bias)
         elif J == "attn":
             self.connectivity = Attention(
                 ch,
@@ -164,3 +166,46 @@ class KLayer(nn.Module):  # Kuramoto layer
             es.append((-_sim).reshape(x.shape[0], -1).sum(-1))
 
         return xs, es
+
+################################################################################
+#################### BELOW ADDED BY SK 
+################################################################################
+
+class RepeatedConv2d(nn.Module):
+    """
+    conv.weight[o, i, h, w] は
+        J[o%2, i%2]   (同じ値を H,W 方向にコピー)
+    となる畳み込み層．
+    """
+    def __init__(self, n=2, ch_in=128, ch_out=128, ksize=9, stride=1, padding=None, bias=False):
+        super().__init__()
+        assert ch_in % n == 0 and ch_out % n == 0, "チャネル数は 2 の倍数に"
+        self.n = n
+        self.ch_in  = ch_in
+        self.ch_out = ch_out
+        self.ksize  = ksize
+        self.stride = stride
+        self.padding = ksize // 2 if padding is None else padding
+        
+        if bias:
+            self.bias = nn.Parameter(torch.zeros(ch_out))
+        else:
+            self.register_parameter("bias", None)   # state_dict にも載らない
+
+        # 4 個だけ学習するパラメータ (a,b;c,d)
+        self.J = nn.Parameter(torch.randn(n,n) * 0.01)
+
+    def _build_weight(self):
+        """
+        (2,2) → (2,2,1,1) → repeat → (ch_out, ch_in, ksize, ksize)
+        """
+        h_rep, w_rep = self.ksize, self.ksize
+        oc_rep, ic_rep = self.ch_out // self.n, self.ch_in // self.n
+        return self.J.unsqueeze(-1).unsqueeze(-1).repeat(
+            oc_rep, ic_rep, h_rep, w_rep)          # 実際に畳み込むフルカーネル
+
+    def forward(self, x):
+        w = self._build_weight()
+        return nn.functional.conv2d(x, w, bias=self.bias,
+                        stride=self.stride,
+                        padding=self.padding)

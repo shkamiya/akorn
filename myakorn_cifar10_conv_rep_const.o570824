@@ -1,0 +1,101 @@
+Using device: cuda
+GPU: NVIDIA GH200 120GB
+Memory: 101.5 GB
+Parameters saved to: results/20250704_570824.opbs/parameters.json
+wandb: Currently logged in as: shunsuke-kamiya (shunsuke-kamiya-the-university-of-tokyo) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.20.1
+wandb: Run data is saved locally in /work/gj26/b20109/akorn/wandb/run-20250704_130241-el8yuwhw
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run my_akorn_cifar10_conv_rep_const_1751601761
+wandb: ⭐️ View project at https://wandb.ai/shunsuke-kamiya-the-university-of-tokyo/my_akorn_cifar10_conv_rep_const
+wandb: 🚀 View run at https://wandb.ai/shunsuke-kamiya-the-university-of-tokyo/my_akorn_cifar10_conv_rep_const/runs/el8yuwhw
+Configuration:
+  batch_size: 64
+  num_workers: 4
+  num_classes: 10
+  n: 2
+  ch: 128
+  L: 3
+  T: 3
+  gamma: 1.0
+  J: conv_repeated_const
+  J_bias: False
+  ksizes: [9, 7, 5]
+  ro_ksize: 3
+  ro_N: 2
+  norm: bn
+  c_norm: gn
+  use_omega: True
+  init_omg: 1.0
+  global_omg: True
+  learn_omg: True
+  ensemble: 1
+  epochs: 100
+  lr: 0.0001
+  weight_decay: 0.0
+  log_interval: 100
+  eval_interval: 5
+  save_interval: 20
+  seed: 42
+  experiment_name: my_akorn_cifar10_conv_rep_const
+  save_dir: results/20250704_570824.opbs
+
+Creating data loaders...
+Training samples: 50000
+Test samples: 10000
+
+Creating model...
+Total parameters: 16,979,357
+Trainable parameters: 16,979,356
+Model size: 67.92 MB (float32)
+
+Starting training for 100 epochs...
+------------------------------------------------------------
+Epoch 1:   0%|          | 0/782 [00:00<?, ?it/s]Epoch 1:   0%|          | 0/782 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/work/gj26/b20109/akorn/cifar10_myakorn_classification.py", line 662, in <module>
+    main()
+  File "/work/gj26/b20109/akorn/cifar10_myakorn_classification.py", line 490, in main
+    train_loss, train_acc = train_epoch(
+                            ^^^^^^^^^^^^
+  File "/work/gj26/b20109/akorn/cifar10_myakorn_classification.py", line 186, in train_epoch
+    output = model(data)
+             ^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1740, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1751, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/gj26/b20109/akorn/source/models/classification/my_knet.py", line 213, in forward
+    c, x, xs, es = self.feature(inp)
+                   ^^^^^^^^^^^^^^^^^
+  File "/work/gj26/b20109/akorn/source/models/classification/my_knet.py", line 191, in feature
+    layer_xs, layer_es = k_layer(x, c, self.T[l], self.gamma)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1740, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1751, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/gj26/b20109/akorn/source/layers/klayer.py", line 163, in forward
+    dxdt, _sim = self.kupdate(x, c)
+                 ^^^^^^^^^^^^^^^^^^
+  File "/work/gj26/b20109/akorn/source/layers/klayer.py", line 131, in kupdate
+    _y = self.connectivity(x)
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1740, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1751, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/gj26/b20109/akorn/source/layers/klayer.py", line 205, in forward
+    return F.conv2d(x, w, bias=self.bias,
+           ^
+NameError: name 'F' is not defined
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mmy_akorn_cifar10_conv_rep_const_1751601761[0m at: [34mhttps://wandb.ai/shunsuke-kamiya-the-university-of-tokyo/my_akorn_cifar10_conv_rep_const/runs/el8yuwhw[0m
+[1;34mwandb[0m: Find logs at: [1;35mwandb/run-20250704_130241-el8yuwhw/logs[0m
+ok

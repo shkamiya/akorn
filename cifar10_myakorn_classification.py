@@ -70,7 +70,7 @@ def get_config():
         'L': 3,              # Number of layers
         'T': 3,              # Number of time steps per layer
         'gamma': 1.0,        # Integration step size
-        'J': 'conv',         # Connectivity type ('conv' or 'attn')
+        'J': 'conv',         # Connectivity type ('conv', 'attn' or 'conv_repeated_const')
         'J_bias': False,     # Connectivity bias turned off! by SK on Jul 4, 2025
         'ksizes': [9, 7, 5], # Kernel sizes for each layer
         'ro_ksize': 3,       # Readout kernel size
@@ -213,7 +213,6 @@ def train_epoch(model, train_loader, criterion, optimizer, device, epoch, config
     
     return epoch_loss, epoch_acc
 
-
 def evaluate(model, test_loader, criterion, device):
     """Evaluate the model"""
     model.eval()
@@ -299,7 +298,7 @@ def main():
     parser.add_argument('--L', type=int, default=3, help='Number of layers')
     parser.add_argument('--T', type=int, default=3, help='Number of time steps per layer')
     parser.add_argument('--gamma', type=float, default=1.0, help='Integration step size')
-    parser.add_argument('--J', type=str, default='conv', choices=['conv', 'attn'], help='Connectivity type')
+    parser.add_argument('--J', type=str, default='conv', choices=['conv', 'attn', 'conv_repeated_const'], help='Connectivity type')
     parser.add_argument('--J_bias', type=str2bool, default=False, help='Bias of connection convolutions, no bias as default')
     parser.add_argument('--ksizes', type=int, nargs='+', default=[9, 7, 5], help='Kernel sizes for each layer')
     parser.add_argument('--ro-ksize', type=int, default=3, help='Readout kernel size')
@@ -434,6 +433,7 @@ def main():
             'model/trainable_params': trainable_params,
             'model/size_mb': total_params * 4 / 1e6
         })
+        wandb.watch(model, log='all', log_freq=config['log_interval'])
     
     # Loss function and optimizer
     criterion = nn.CrossEntropyLoss()

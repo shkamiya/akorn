@@ -232,8 +232,7 @@ class MyAKOrN(nn.Module):
             return torch.stack(logits_list).mean(0)
 
 
-
-class MySimplerAKOrN(nn.Module):
+class MyAKOrNSimplerReadout(nn.Module):
     """
     Artficial Kuramoto Oscillator Neurons (AKOrN) for classification tasks.
     
@@ -244,7 +243,7 @@ class MySimplerAKOrN(nn.Module):
         L: Number of layers
         T: Number of time steps (int or list)
         J: Connectivity type (str or list)
-        J_bias: convolution bias (t or f), added by SK on Jul 4, 2025 
+        J_bias: convolution bias (t or f), added by SK on Jul 4, 2025       
         ksizes: Kernel sizes (int or list)
         ro_ksize: Readout kernel size
         ro_N: Readout N parameter (int or list)
@@ -260,14 +259,14 @@ class MySimplerAKOrN(nn.Module):
 
     def __init__(
         self,
-        n=4,
+        n=2,
         ch=64,
         out_classes=10,
         L=3,
         T=3,
         J="conv",
         J_bias=False,
-        ksizes=[3, 3, 3],
+        ksizes=[9, 7, 5],
         ro_ksize=3,
         ro_N=2,
         norm="bn",
@@ -275,7 +274,7 @@ class MySimplerAKOrN(nn.Module):
         gamma=1.0,
         use_omega=True,
         init_omg=1.0,
-        global_omg=True,
+        global_omg=False,
         learn_omg=True,
         ensemble=1,
     ):
@@ -322,6 +321,10 @@ class MySimplerAKOrN(nn.Module):
         """Create a strided convolution layer."""
         return nn.Conv2d(in_ch, out_ch, kernel_size, stride, padding, groups=1)
     
+    def _simple_readout_block(self, channels):
+        """Very simple readout"""
+
+
     def _create_readout_block(self, channels, ro_N, ro_ksize, norm):
         """Create a readout block."""
         padding = ro_ksize // 2
@@ -450,3 +453,4 @@ class MySimplerAKOrN(nn.Module):
                 logits = self.out(features)
                 logits_list.append(logits)
             return torch.stack(logits_list).mean(0)
+

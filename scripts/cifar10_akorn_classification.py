@@ -69,7 +69,7 @@ def get_config():
         'L': 3,              # Number of layers
         'T': 3,              # Number of time steps per layer
         'gamma': 1.0,        # Integration step size
-        'J': 'conv',         # Connectivity type ('conv' or 'attn')
+        'J': 'conv',         # Connectivity type ('conv', or 'attn')
         'ksizes': [9, 7, 5], # Kernel sizes for each layer
         'ro_ksize': 3,       # Readout kernel size
         'ro_N': 2,           # Readout N parameter
