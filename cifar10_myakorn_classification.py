@@ -33,6 +33,7 @@ import torchvision.transforms as transforms
 from torchvision.datasets import CIFAR10
 
 import wandb
+import yaml, copy
 
 # Add source directory to path
 sys.path.append('source')
@@ -96,7 +97,7 @@ def get_config():
         
         # Experiment
         'seed': 42,
-        'experiment_name': 'my_akorn_cifar10',
+        'experiment_name': 'akorn_cifar10',
         'save_dir': None,
     }
     return config
@@ -328,9 +329,34 @@ def main():
     parser.add_argument('--save-dir', type=str, default=None, help='Directory to save results. Defaults to [experiment_name]_[timestamp]')
     parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint to resume training from')
     parser.add_argument('--wandb-id', type=str, default=None, help='WandB run ID to resume') # この行を追加
+
+    parser.add_argument('--param-file', type=str, default=None,
+                     help='YAML file listing hyper-param sets')
+    parser.add_argument('--index', type=int, default=None,
+                        help='Which entry of YAML to load (0-based)')
+
     
     args = parser.parse_args()
     
+    # ── ★ Grid 展開ロジック ────────────────────────
+    if args.param_file is not None and args.index is not None:
+        with open(args.param_file) as f:
+            cfg = yaml.safe_load(f)['grid']
+        keys, lists = zip(*[(k, v if isinstance(v, list) else [v]) for k, v in cfg.items()])
+        combos = [dict(zip(keys, values)) for values in itertools.product(*lists)]
+        sel = combos[args.index]                      # PBS_ARRAYID 番目を選択
+        for k, v in sel.items(): setattr(args, k, v)  # argparse を上書き
+    # ──────────────────────────────────────────────
+    # # ── (★) YAML による上書き ─────────────────────────
+    # if args.param_file is not None and args.index is not None:
+    #     with open(args.param_file, 'r') as f:
+    #         sweep = yaml.safe_load(f)
+    #     cfg_from_yaml = sweep[args.index]
+    #     for k, v in cfg_from_yaml.items():
+    #         if hasattr(args, k):
+    #             setattr(args, k, v)
+    # # ────────────────────────────────────────────────
+
     if args.save_dir is None:
         current_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         args.save_dir = f"./results/{args.experiment_name}_{current_time}"
@@ -394,11 +420,13 @@ def main():
         # 再開用のIDを設定
         resume_id = args.wandb_id if args.resume else None
 
+        run_name = f"{config['experiment_name']}_T{args.T}_gamma{args.gamma}"
+        #run_name = f"{config['experiment_name']}_{int(time.time())}"
         wandb.init(
             project=args.wandb_project,
             entity=args.wandb_entity,
             config=config,
-            name=f"{config['experiment_name']}_{int(time.time())}",
+            name=run_name,
             id=resume_id, # この行を追加
             resume="allow" # この行を追加
         )
