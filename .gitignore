@@ -22,6 +22,9 @@ __pycache__/
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
 
+# local code to connecto to miyabi on jupyter
+connect_miyabi_jupyter.sh
+
 # movies and images
 *.mp4
 *.avi
