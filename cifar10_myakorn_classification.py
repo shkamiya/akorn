@@ -34,6 +34,7 @@ from torchvision.datasets import CIFAR10
 
 import wandb
 import yaml, copy
+import itertools
 
 # Add source directory to path
 sys.path.append('source')

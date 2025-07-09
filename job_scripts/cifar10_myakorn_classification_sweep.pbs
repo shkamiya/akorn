@@ -1,13 +1,14 @@
 #!/bin/bash
 #PBS -q short-g
 #PBS -l select=1
-#PBS -l walltime=04:00:00
+#PBS -l walltime=06:00:00
 #PBS -N sweep_my_akorn_cifar10
-#PBS -t 0-17
-#PBS -o logs/${PBS_JOBNAME}_${PBS_JOBID}.out
-#PBS -e logs/${PBS_JOBNAME}_${PBS_JOBID}.err
+#PBS -o logs/
+#PBS -e logs/
 #PBS -j oe
 #PBS -W group_list=gj26
+
+# #-tというオプションは使えないので外からfor loopでまわす
 
 module purge
 module load singularity
@@ -33,8 +34,8 @@ singularity exec --nv \
       --batch-size 64 \
       --lr 1e-4 \
       --param-file configs/_0708_2025_sweep_grid.yaml \
-      --index ${PBS_ARRAYID} \
-      --save-dir "results/sweep_${TODAY}_${PBS_JOBID}_${PBS_ARRAYID}"
+      --index ${INDEX} \
+      --save-dir "results/sweep_${TODAY}_${PBS_JOBID}_${INDEX}"
 
 STATUS=$?   # 0=正常, それ以外=異常
 

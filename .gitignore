@@ -3,6 +3,7 @@
 results/
 data/
 logs/
+wandb/
 
 # egg info that appears when pip install -e .
 *.egg-info
