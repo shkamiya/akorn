@@ -33,15 +33,17 @@ class AKOrNStaticAnalyzer:
     matrices, omega parameters, and their geometric properties.
     """
     
-    def __init__(self, model, device: str = 'cpu'):
+    def __init__(self, model, layer_idx: int, device: str = 'cpu'):
         """
-        Initialize the connectivity analyzer.
+        Initialize the connectivity analyzer for a specific layer.
         
         Args:
             model: Trained MyAKOrN model
+            layer_idx: Layer index to analyze
             device: Device to run analysis on ('cpu' or 'cuda')
         """
         self.model = model
+        self.layer_idx = layer_idx
         self.device = device
         self.model.eval()
         
@@ -49,69 +51,75 @@ class AKOrNStaticAnalyzer:
         self.n = 2  # oscillator dimension (assumed to be 2)
         self.num_layers = len(model.layers)
         
-        # Storage for extracted parameters
-        self.omega_params = None
-        self.connectivity_weights = None
+        # Validate layer index
+        if layer_idx >= self.num_layers or layer_idx < 0:
+            raise ValueError(f"Layer index {layer_idx} is out of range [0, {self.num_layers-1}]")
+        
+        # Storage for extracted parameters (single layer)
+        self.omega_param = None
+        self.connectivity_weight = None
         self.connectivity_blocks = None
         self.decomposition_results = None
         
         # Analysis results
         self.clustering_results = None
-        self.dimensionality_reduction_results = {}
+        self.dimensionality_reduction_results = None
         
-    def extract_omega_parameters(self) -> List[np.ndarray]:
-        """Extract omega parameters from all layers."""
-        omega_params = []
-        
-        for layer_idx in range(self.num_layers):
-            layer = self.model.layers[layer_idx]
-            if hasattr(layer[2], 'omg') and hasattr(layer[2].omg, 'omg_param'):
-                omega_param = layer[2].omg.omg_param.detach().cpu().numpy()
-                omega_params.append(omega_param)
-                print(f"Layer {layer_idx}: omega shape = {omega_param.shape}")
-                print(f"  Omega magnitude: {np.linalg.norm(omega_param):.4f}")
-        
-        self.omega_params = omega_params
-        return omega_params
-    
-    def extract_connectivity_weights(self) -> List[Dict]:
-        """Extract connectivity weight matrices from all layers."""
-        connectivity_weights = []
-        
-        for layer_idx in range(self.num_layers):
-            layer = self.model.layers[layer_idx]
-            if hasattr(layer[2], 'connectivity'):
-                weight = layer[2].connectivity.weight.detach().cpu().numpy()
-                bias = layer[2].connectivity.bias.detach().cpu().numpy() if layer[2].connectivity.bias is not None else None
-                
-                connectivity_weights.append({
-                    'weight': weight,
-                    'bias': bias,
-                    'shape': weight.shape,
-                    'layer_idx': layer_idx
-                })
-                
-                print(f"Layer {layer_idx}: Connectivity weight shape = {weight.shape}")
-                print(f"  Weight statistics: mean={weight.mean():.4f}, std={weight.std():.4f}")
-                print(f"  Weight range: [{weight.min():.4f}, {weight.max():.4f}]")
-        
-        self.connectivity_weights = connectivity_weights
-        return connectivity_weights
-    
-    def extract_connectivity_blocks(self, layer_idx: int = 0) -> np.ndarray:
-        """
-        Extract 2x2 connectivity blocks from a specific layer.
-        
-        Args:
-            layer_idx: Layer index to extract blocks from
+    def extract_omega_parameters(self) -> Optional[np.ndarray]:
+        """Extract omega parameters from the specified layer."""
+        if self.omega_param is not None:
+            return self.omega_param
             
+        layer = self.model.layers[self.layer_idx]
+        if hasattr(layer[2], 'omg') and hasattr(layer[2].omg, 'omg_param'):
+            self.omega_param = layer[2].omg.omg_param.detach().cpu().numpy()
+            print(f"Layer {self.layer_idx}: omega shape = {self.omega_param.shape}")
+            print(f"  Omega magnitude: {np.linalg.norm(self.omega_param):.4f}")
+        
+        return self.omega_param
+    
+    def extract_connectivity_weights(self) -> Optional[Dict]:
+        """Extract connectivity weight matrices from the specified layer."""
+        if self.connectivity_weight is not None:
+            return self.connectivity_weight
+            
+        layer = self.model.layers[self.layer_idx]
+        if hasattr(layer[2], 'connectivity'):
+            weight = layer[2].connectivity.weight.detach().cpu().numpy()
+            bias = layer[2].connectivity.bias.detach().cpu().numpy() if layer[2].connectivity.bias is not None else None
+            
+            self.connectivity_weight = {
+                'weight': weight,
+                'bias': bias,
+                'shape': weight.shape,
+                'layer_idx': self.layer_idx
+            }
+            
+            print(f"Layer {self.layer_idx}: Connectivity weight shape = {weight.shape}")
+            print(f"  Weight statistics: mean={weight.mean():.4f}, std={weight.std():.4f}")
+            print(f"  Weight range: [{weight.min():.4f}, {weight.max():.4f}]")
+        
+        return self.connectivity_weight
+    
+    def extract_connectivity_blocks(self) -> np.ndarray:
+        """
+        Extract 2x2 connectivity blocks from the specified layer.
+        
         Returns:
             Array of shape (num_blocks, 2, 2) containing all 2x2 connectivity blocks
         """
-        if self.connectivity_weights is None:
+        # Return cached blocks if available
+        if self.connectivity_blocks is not None:
+            return self.connectivity_blocks
+            
+        # Ensure connectivity weights are extracted
+        if self.connectivity_weight is None:
             self.extract_connectivity_weights()
             
-        J = self.connectivity_weights[layer_idx]['weight']
+        if self.connectivity_weight is None:
+            raise ValueError(f"No connectivity weights found for layer {self.layer_idx}")
+            
+        J = self.connectivity_weight['weight']
         C_out, C_in, H, W = J.shape
         
         # Reshape to extract 2x2 blocks
@@ -121,6 +129,7 @@ class AKOrNStaticAnalyzer:
              .reshape(-1, 2, 2)            # (num_blocks, 2, 2)
         )
         
+        # Cache the blocks
         self.connectivity_blocks = blocks
         return blocks
     
@@ -191,13 +200,12 @@ class AKOrNStaticAnalyzer:
         
         return c_R, c_S, alpha, beta
     
-    def analyze_connectivity_clustering(self, layer_idx: int = 0, k_range: range = range(2, 11), 
+    def analyze_connectivity_clustering(self, k_range: range = range(2, 11), 
                                        standardize: bool = False, random_state: int = 0) -> Dict:
         """
         Perform clustering analysis on connectivity blocks.
         
         Args:
-            layer_idx: Layer index to analyze
             k_range: Range of k values to test for clustering
             standardize: Whether to standardize features before clustering
             random_state: Random seed for reproducibility
@@ -205,8 +213,8 @@ class AKOrNStaticAnalyzer:
         Returns:
             Dictionary containing clustering results
         """
-        # Always extract connectivity blocks for the specified layer
-        connectivity_blocks = self.extract_connectivity_blocks(layer_idx)
+        # Extract connectivity blocks for the specified layer
+        connectivity_blocks = self.extract_connectivity_blocks()
         
         # Flatten connectivity blocks to feature vectors
         X = connectivity_blocks.reshape(connectivity_blocks.shape[0], -1)
@@ -235,24 +243,27 @@ class AKOrNStaticAnalyzer:
             'best_model': best_model,
             'labels': best_model.labels_,
             'centers': best_model.cluster_centers_.reshape(best_k, 2, 2),
-            'layer_idx': layer_idx
+            'layer_idx': self.layer_idx
         }
         
         return self.clustering_results
     
-    def perform_dimensionality_reduction(self, layer_idx: int = 0, methods: List[str] = ['pca']) -> Dict:
+    def perform_dimensionality_reduction(self, methods: List[str] = ['pca']) -> Dict:
         """
         Perform dimensionality reduction on connectivity blocks.
         
         Args:
-            layer_idx: Layer index to analyze
             methods: List of methods to use ('pca', 'tsne', 'umap')
             
         Returns:
             Dictionary containing dimensionality reduction results
         """
-        # Always extract connectivity blocks for the specified layer  
-        connectivity_blocks = self.extract_connectivity_blocks(layer_idx)
+        # Return cached results if available
+        if self.dimensionality_reduction_results is not None:
+            return self.dimensionality_reduction_results
+            
+        # Extract connectivity blocks for the specified layer  
+        connectivity_blocks = self.extract_connectivity_blocks()
         
         X = connectivity_blocks.reshape(connectivity_blocks.shape[0], -1)
         results = {}
@@ -297,21 +308,19 @@ class AKOrNStaticAnalyzer:
                 'model': mapper
             }
         
-        self.dimensionality_reduction_results[layer_idx] = results
+        # Cache results
+        self.dimensionality_reduction_results = results
         return results
     
-    def analyze_full_connectivity(self, layer_idx: int = 0) -> Dict:
+    def analyze_full_connectivity(self) -> Dict:
         """
-        Perform comprehensive connectivity analysis for a layer.
+        Perform comprehensive connectivity analysis for the specified layer.
         
-        Args:
-            layer_idx: Layer index to analyze
-            
         Returns:
             Dictionary containing all analysis results
         """
-        # Extract connectivity blocks
-        blocks = self.extract_connectivity_blocks(layer_idx)
+        # Extract connectivity blocks for the specified layer
+        blocks = self.extract_connectivity_blocks()
         
         # Perform decompositions
         p1, p2, p3, q, sym_frob, skew_frob = self.decompose_symmetric_skew(blocks)
@@ -319,53 +328,50 @@ class AKOrNStaticAnalyzer:
 
         # Store decomposition results
         self.decomposition_results = {
-            'layer_idx': layer_idx,
+            'layer_idx': self.layer_idx,
             'blocks': blocks,
             'symmetric_skew': {'p1': p1, 'p2': p2, 'p3': p3, 'q': q, 'sym_frob': sym_frob, 'skew_frob': skew_frob},
             'rotation_symmetric': {'c_R': c_R, 'c_S': c_S, 'alpha': alpha, 'beta': beta}
         }
         
         # Perform clustering
-        # clustering_results = self.analyze_connectivity_clustering(layer_idx)
+        # clustering_results = self.analyze_connectivity_clustering()
         
         # Perform dimensionality reduction
-        if not layer_idx in self.dimensionality_reduction_results:
-            self.perform_dimensionality_reduction(layer_idx, ['pca'])
+        if self.dimensionality_reduction_results is None:
+            self.perform_dimensionality_reduction(['pca'])
         
         return {
             'decomposition': self.decomposition_results,
             'clustering': self.clustering_results,
-            'dimensionality_reduction': self.dimensionality_reduction_results[layer_idx]
+            'dimensionality_reduction': self.dimensionality_reduction_results
         }
     
-    def plot_omega_distributions(self, figsize: Tuple[int, int] = (15, 4), show: bool = True) -> None:
-        """Plot omega parameter distributions across layers."""
-        if self.omega_params is None:
+    def plot_omega_distributions(self, figsize: Tuple[int, int] = (8, 4), show: bool = True) -> None:
+        """Plot omega parameter distributions for the specified layer."""
+        if self.omega_param is None:
             self.extract_omega_parameters()
             
-        fig, axes = plt.subplots(1, len(self.omega_params), figsize=figsize)
-        if len(self.omega_params) == 1:
-            axes = [axes]
+        if self.omega_param is None:
+            print(f"No omega parameters found for layer {self.layer_idx}")
+            return
             
-        for i, omega in enumerate(self.omega_params):
-            omega_vals = omega[:, 0]  # Take first column
-            axes[i].hist(omega_vals, bins=20, color='C0', alpha=0.7)
-            axes[i].set_title(f'Layer {i} Omega Histogram')
-            axes[i].set_xlabel('Omega Value')
-            axes[i].set_ylabel('Count')
+        plt.figure(figsize=figsize)
+        omega_vals = self.omega_param[:, 0]  # Take first column
+        plt.hist(omega_vals, bins=20, color='C0', alpha=0.7)
+        plt.title(f'Layer {self.layer_idx} Omega Histogram')
+        plt.xlabel('Omega Value')
+        plt.ylabel('Count')
             
         plt.tight_layout()
         if show:
             plt.show()
     
 
-    def plot_connectivity_statistics(self, layer_idx: int = 0, show: bool = True) -> None:
+    def plot_connectivity_statistics(self, show: bool = True) -> None:
         """Plot summary statistics of connectivity matrices."""
-        if self.connectivity_weights is None:
-            self.extract_connectivity_weights()
-
-        # Always extract connectivity blocks for the specified layer
-        connectivity_blocks = self.extract_connectivity_blocks(layer_idx)
+        # Extract connectivity blocks for the specified layer
+        connectivity_blocks = self.extract_connectivity_blocks()
         X = connectivity_blocks.reshape(connectivity_blocks.shape[0], -1)    # (many, 4)
         df_X = pd.DataFrame({
             'J11': X[:, 0],
@@ -378,14 +384,14 @@ class AKOrNStaticAnalyzer:
 
         # Left subplot: violin plot of 2x2 block elements
         sns.violinplot(data=df_X, ax=axes[0], inner='quartile')
-        axes[0].set_title('Distribution of 2x2 Block Elements')
+        axes[0].set_title(f'Layer {self.layer_idx}: Distribution of 2x2 Block Elements')
         axes[0].set_ylabel('Value')
         axes[0].set_xlabel('Matrix Entry')
 
         # Right subplot: Frobenius norm histogram
         frob_norms = np.linalg.norm(connectivity_blocks, axis=(1, 2))  # Frobenius norm for each ii
         axes[1].hist(frob_norms, bins=80, color='C0', alpha=0.7)
-        axes[1].set_title('Distribution of Frobenius Norms of J_{ij}')
+        axes[1].set_title(f'Layer {self.layer_idx}: Distribution of Frobenius Norms of J_{{ij}}')
         axes[1].set_xlabel('Frobenius Norm')
         axes[1].set_ylabel('Count')
         
@@ -393,15 +399,15 @@ class AKOrNStaticAnalyzer:
         if show:
             plt.show()
     
-    def plot_Frob_norms_summary(self, layer_idx: int = 0, sum_wrt: str = 'kernel', show: bool = True) -> None:
+    def plot_Frob_norms_summary(self, sum_wrt: str = 'kernel', show: bool = True) -> None:
         """Plot summary statistics of connectivity matrices."""
         if not sum_wrt in ['kernel', 'channels']:
             raise ValueError('sum_wrt must be either "kernel" or "channels".')
 
-        if self.connectivity_weights is None:
+        if self.connectivity_weight is None:
             self.extract_connectivity_weights()
             
-        J = self.connectivity_weights[layer_idx]['weight']
+        J = self.connectivity_weight['weight']
         C_out, C_in, H, W = J.shape
         
         # Compute Frobenius norms of 2x2 blocks
@@ -439,18 +445,22 @@ class AKOrNStaticAnalyzer:
             ax.grid(False)
             plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         
-        plt.suptitle(f'Layer {layer_idx} Connectivity Statistics', fontsize=16)
+        plt.suptitle(f'Layer {self.layer_idx} Connectivity Statistics', fontsize=16)
         plt.tight_layout()
         if show:
             plt.show()
     
-    def plot_decomposition_results(self, layer_idx: int = 0, decomp_type: str = 'symmetric_skew', show: bool = True) -> None:
+    def plot_decomposition_results(self, decomp_type: str = 'symmetric_skew', show: bool = True) -> None:
         """Plot results of connectivity decomposition."""
-        if self.decomposition_results is None:
-            self.analyze_full_connectivity(layer_idx)
+        # Compute fresh decomposition for the specified layer
+        connectivity_blocks = self.extract_connectivity_blocks()
         
-        if decomp_type in ['symmetric_skew', 'rotation_symmetric']:
-            results = self.decomposition_results[decomp_type]
+        if decomp_type == 'symmetric_skew':
+            p1, p2, p3, q, sym_frob, skew_frob = self.decompose_symmetric_skew(connectivity_blocks)
+            results = {'p1': p1, 'p2': p2, 'p3': p3, 'q': q, 'sym_frob': sym_frob, 'skew_frob': skew_frob}
+        elif decomp_type == 'rotation_symmetric':
+            c_R, c_S, alpha, beta = self.decompose_rotation_symmetric(connectivity_blocks)
+            results = {'c_R': c_R, 'c_S': c_S, 'alpha': alpha, 'beta': beta}
         else:
             raise ValueError(f"Decomposition type {decomp_type} not available.")
         
@@ -467,7 +477,7 @@ class AKOrNStaticAnalyzer:
                 axes[i].set_xlabel('Value')
                 axes[i].set_ylabel('Count')
             
-            plt.suptitle('Symmetric/Skew-Symmetric Decomposition')
+            plt.suptitle(f'Layer {self.layer_idx}: Symmetric/Skew-Symmetric Decomposition')
             plt.tight_layout()
             if show:
                 plt.show()
@@ -530,10 +540,10 @@ class AKOrNStaticAnalyzer:
             if show:
                 plt.show()
     
-    def plot_clustering_results(self, layer_idx: int = 0) -> None:
+    def plot_clustering_results(self, show: bool = True) -> None:
         """Plot connectivity clustering results."""
         if self.clustering_results is None:
-            self.analyze_connectivity_clustering(layer_idx)
+            self.analyze_connectivity_clustering()
             
         results = self.clustering_results
         
@@ -565,12 +575,12 @@ class AKOrNStaticAnalyzer:
         if show:
             plt.show()
     
-    def plot_dimensionality_reduction(self, layer_idx: int = 0, method: str = 'pca') -> None:
+    def plot_dimensionality_reduction(self, method: str = 'pca', show: bool = True) -> None:
         """Plot dimensionality reduction results."""
-        if layer_idx not in self.dimensionality_reduction_results:
-            self.perform_dimensionality_reduction(layer_idx)
+        if self.dimensionality_reduction_results is None:
+            self.perform_dimensionality_reduction()
             
-        results = self.dimensionality_reduction_results[layer_idx]
+        results = self.dimensionality_reduction_results
         
         if method not in results:
             raise ValueError(f"Method {method} not available. Available: {list(results.keys())}")
@@ -610,13 +620,11 @@ class AKOrNStaticAnalyzer:
             if show:
                 plt.show()
     
-    def plot_torus_visualization(self, layer_idx: int = 0, show: bool = True) -> None:
+    def plot_torus_visualization(self, show: bool = True) -> None:
         """Plot connectivity angles on a torus."""
-        if self.decomposition_results is None:
-            self.analyze_full_connectivity(layer_idx)
-            
-        alpha = self.decomposition_results['rotation_symmetric']['alpha']
-        beta = self.decomposition_results['rotation_symmetric']['beta']
+        # Compute fresh decomposition for the specified layer
+        connectivity_blocks = self.extract_connectivity_blocks()
+        c_R, c_S, alpha, beta = self.decompose_rotation_symmetric(connectivity_blocks)
         
         # Torus parameters
         R, r = 3.0, 0.5
@@ -652,21 +660,18 @@ class AKOrNStaticAnalyzer:
         ax.set_box_aspect([1, 1, 0.5])
         ax.set_axis_off()
         ax.view_init(elev=30, azim=45)
-        ax.set_title('Distribution of (α, β) on Torus', pad=20, fontsize=16)
+        ax.set_title(f'Layer {self.layer_idx}: Distribution of (α, β) on Torus', pad=20, fontsize=16)
         
         plt.colorbar(scatter, ax=ax, shrink=0.5, aspect=10)
         plt.tight_layout()
         if show:
             plt.show()
 
-    def show_full_basic_plots(self, layer_idx: int = 0) -> None:
+    def show_full_basic_plots(self) -> None:
         """
         Display all available plots for comprehensive analysis.
-        
-        Args:
-            layer_idx: Layer index to analyze
         """
-        print(f"Generating all plots for layer {layer_idx}...")
+        print(f"Generating all plots for layer {self.layer_idx}...")
         
         # 1. Plot omega distributions
         print("1. Omega parameter distributions...")
@@ -674,91 +679,87 @@ class AKOrNStaticAnalyzer:
         
         # 2. Plot connectivity statistics
         print("2. Connectivity statistics...")
-        self.plot_connectivity_statistics(layer_idx)
+        self.plot_connectivity_statistics()
         
         # 3. Plot Frobenius norms summary (kernel)
         print("3. Frobenius norms summary (kernel)...")
-        self.plot_Frob_norms_summary(layer_idx, sum_wrt='kernel')
+        self.plot_Frob_norms_summary(sum_wrt='kernel')
         
         # 4. Plot Frobenius norms summary (channels)
         print("4. Frobenius norms summary (channels)...")
-        self.plot_Frob_norms_summary(layer_idx, sum_wrt='channels')
+        self.plot_Frob_norms_summary(sum_wrt='channels')
         
         # 5. Plot decomposition results (symmetric_skew)
         print("5. Symmetric/Skew-Symmetric decomposition...")
-        self.plot_decomposition_results(layer_idx, decomp_type='symmetric_skew')
+        self.plot_decomposition_results(decomp_type='symmetric_skew')
         
         # 6. Plot decomposition results (rotation_symmetric)
         print("6. Rotation/Symmetric decomposition...")
-        self.plot_decomposition_results(layer_idx, decomp_type='rotation_symmetric')
+        self.plot_decomposition_results(decomp_type='rotation_symmetric')
         
         # 7. Plot clustering results (if available)
         print("7. Clustering results...")
         print(f"   Clustering analysis omitted for now")
         # try:
-        #     self.plot_clustering_results(layer_idx)
+        #     self.plot_clustering_results()
         # except Exception as e:
         #     print(f"   Clustering analysis not available: {e}")
         
         # 8. Plot dimensionality reduction (PCA)
         print("8. Dimensionality reduction (PCA)...")
         try:
-            self.plot_dimensionality_reduction(layer_idx, method='pca')
+            self.plot_dimensionality_reduction(method='pca')
         except Exception as e:
             print(f"   PCA visualization not available: {e}")
        
-        print(f"All basic plots completed for layer {layer_idx}!")
+        print(f"All basic plots completed for layer {self.layer_idx}!")
     
-    def generate_analysis_report(self, layer_idx: int = 0, save_path: Optional[str] = None) -> Dict:
+    def generate_analysis_report(self, save_path: Optional[str] = None) -> Dict:
         """
         Generate a comprehensive analysis report.
         
         Args:
-            layer_idx: Layer index to analyze
             save_path: Optional path to save the report
             
         Returns:
             Dictionary containing the full analysis report
         """
-        print(f"Generating comprehensive analysis report for layer {layer_idx}...")
+        print(f"Generating comprehensive analysis report for layer {self.layer_idx}...")
         
         # Extract all basic parameters
         self.extract_omega_parameters()
         self.extract_connectivity_weights()
         
         # Perform full connectivity analysis
-        full_analysis = self.analyze_full_connectivity(layer_idx)
+        full_analysis = self.analyze_full_connectivity()
         
         # Compile report
         report = {
             'model_info': {
                 'num_layers': self.num_layers,
                 'oscillator_dimension': self.n,
-                'analyzed_layer': layer_idx
+                'analyzed_layer': self.layer_idx
             },
             'omega_analysis': {
-                'num_layers_with_omega': len(self.omega_params),
-                'omega_shapes': [omega.shape for omega in self.omega_params],
-                'omega_magnitudes': [np.linalg.norm(omega) for omega in self.omega_params]
+                'has_omega': self.omega_param is not None,
+                'omega_shape': self.omega_param.shape if self.omega_param is not None else None,
+                'omega_magnitude': float(np.linalg.norm(self.omega_param)) if self.omega_param is not None else None
             },
             'connectivity_analysis': {
-                'layer_shapes': [conn['shape'] for conn in self.connectivity_weights],
-                'weight_statistics': [
-                    {
-                        'mean': float(conn['weight'].mean()),
-                        'std': float(conn['weight'].std()),
-                        'min': float(conn['weight'].min()),
-                        'max': float(conn['weight'].max())
-                    }
-                    for conn in self.connectivity_weights
-                ],
-                'num_blocks': len(self.connectivity_blocks),
+                'layer_shape': self.connectivity_weight['shape'] if self.connectivity_weight else None,
+                'weight_statistics': {
+                    'mean': float(self.connectivity_weight['weight'].mean()),
+                    'std': float(self.connectivity_weight['weight'].std()),
+                    'min': float(self.connectivity_weight['weight'].min()),
+                    'max': float(self.connectivity_weight['weight'].max())
+                } if self.connectivity_weight else None,
+                'num_blocks': len(self.connectivity_blocks) if self.connectivity_blocks is not None else None,
                 'block_statistics': {
                     'frobenius_norms': {
                         'mean': float(np.linalg.norm(self.connectivity_blocks, axis=(1,2)).mean()),
                         'std': float(np.linalg.norm(self.connectivity_blocks, axis=(1,2)).std())
                     }
-                }
+                } if self.connectivity_blocks is not None else None
             },
             'decomposition_analysis': {
                 'symmetric_skew_stats': {
@@ -767,6 +768,7 @@ class AKOrNStaticAnalyzer:
                         'std': float(vals.std())
                     }
                     for comp, vals in full_analysis['decomposition']['symmetric_skew'].items()
+                    if isinstance(vals, np.ndarray)
                 },
                 'rotation_symmetric_stats': {
                     comp: {
@@ -774,8 +776,9 @@ class AKOrNStaticAnalyzer:
                         'std': float(vals.std())
                     }
                     for comp, vals in full_analysis['decomposition']['rotation_symmetric'].items()
+                    if isinstance(vals, np.ndarray)
                 }
-            },
+            } if full_analysis['decomposition'] else None,
             'clustering_analysis': {
                 'optimal_k': full_analysis['clustering']['best_k'],
                 'silhouette_score': full_analysis['clustering']['best_score'],
@@ -783,7 +786,7 @@ class AKOrNStaticAnalyzer:
                     int(np.sum(full_analysis['clustering']['labels'] == i))
                     for i in range(full_analysis['clustering']['best_k'])
                 ]
-            }
+            } if full_analysis['clustering'] else None
         }
         
         if save_path:

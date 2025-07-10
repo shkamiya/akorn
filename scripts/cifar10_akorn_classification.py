@@ -37,7 +37,7 @@ import wandb
 sys.path.append('source')
 
 from models.classification.knet import AKOrN
-from data.augs import augmentation_strong
+from source.data.augs import augmentation_strong
 from training_utils import save_checkpoint, save_model
 from utils import str2bool
 

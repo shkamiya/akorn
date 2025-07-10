@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-CIFAR-10 Classification with AKOrN (Artificial Kuramoto Oscillator Networks)
-using MyAKOrN.
+MNIST Classification with AKOrN (Artificial Kuramoto Oscillator Networks)
 
-This script trains an AKOrN model for CIFAR-10 image classification with wandb logging.
+This script trains an AKOrN model for MNIST image classification with wandb logging.
 AKOrN is based on the dynamics of Kuramoto oscillators and provides an alternative to traditional neural networks.
 
 References:
@@ -21,7 +20,6 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-import datetime
 
 import torch
 import torch.nn as nn
@@ -30,17 +28,15 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torchvision
 import torchvision.transforms as transforms
-from torchvision.datasets import CIFAR10
+from torchvision.datasets import MNIST
 
 import wandb
-import yaml, copy
-import itertools
 
 # Add source directory to path
 sys.path.append('source')
 
-from models.classification.my_knet import MyAKOrN
-from data.augs import augmentation_strong
+from models.classification.knet import AKOrN
+from source.data.augs import augmentation_strong
 from training_utils import save_checkpoint, save_model
 from utils import str2bool
 
@@ -59,7 +55,6 @@ def set_seed(seed=42):
 
 def get_config():
     """Get training configuration"""
-
     config = {
         # Data
         'batch_size': 128,
@@ -72,8 +67,7 @@ def get_config():
         'L': 3,              # Number of layers
         'T': 3,              # Number of time steps per layer
         'gamma': 1.0,        # Integration step size
-        'J': 'conv',         # Connectivity type ('conv', 'attn' or 'conv_repeated_const')
-        'J_bias': False,     # Connectivity bias turned off! by SK on Jul 4, 2025
+        'J': 'conv',         # Connectivity type ('conv' or 'attn')
         'ksizes': [9, 7, 5], # Kernel sizes for each layer
         'ro_ksize': 3,       # Readout kernel size
         'ro_N': 2,           # Readout N parameter
@@ -98,65 +92,49 @@ def get_config():
         
         # Experiment
         'seed': 42,
-        'experiment_name': 'akorn_cifar10',
-        'save_dir': None,
+        'experiment_name': 'akorn_mnist',
+        'save_dir': './results',
     }
     return config
 
 
 def create_data_loaders(config):
-    """Create train and test data loaders"""
-    # Data transforms
-    transform_train = augmentation_strong(imsize=32)
-    transform_test = transforms.Compose([
+    """Create train and test data loaders for MNIST"""
+    mean, std = 0.1307, 0.3081      # MNIST の統計値
+    transform_train = transforms.Compose([
+        transforms.Resize(32),                   # 28→32 px
+        transforms.Grayscale(3),                 # 1→3 ch
+        #transforms.RandomRotation(10),           # ちょっとだけ強化
         transforms.ToTensor(),
+        transforms.Normalize((mean,)*3, (std,)*3)
+    ])
+    transform_test = transforms.Compose([
+        transforms.Resize(32),
+        transforms.Grayscale(3),
+        transforms.ToTensor(),
+        transforms.Normalize((mean,)*3, (std,)*3)
     ])
 
-    # Load datasets
-    train_dataset = CIFAR10(
-        root='./data', 
-        train=True, 
-        download=True, 
-        transform=transform_train
-    )
+    train_dataset = MNIST(root='./data', train=True,  download=True, transform=transform_train)
+    test_dataset  = MNIST(root='./data', train=False, download=True, transform=transform_test)
 
-    test_dataset = CIFAR10(
-        root='./data', 
-        train=False, 
-        download=True, 
-        transform=transform_test
-    )
-
-    # Create data loaders
-    train_loader = DataLoader(
-        train_dataset, 
-        batch_size=config['batch_size'], 
-        shuffle=True, 
-        num_workers=config['num_workers'],
-        pin_memory=True
-    )
-
-    test_loader = DataLoader(
-        test_dataset, 
-        batch_size=config['batch_size'], 
-        shuffle=False, 
-        num_workers=config['num_workers'],
-        pin_memory=True
-    )
-
+    train_loader = DataLoader(train_dataset, batch_size=config['batch_size'],
+                              shuffle=True,  num_workers=config['num_workers'], pin_memory=True)
+    test_loader  = DataLoader(test_dataset,  batch_size=config['batch_size'],
+                              shuffle=False, num_workers=config['num_workers'], pin_memory=True)
     return train_loader, test_loader
 
 
+
 def create_model(config, device):
-    """Create MyAKOrN model"""
-    model = MyAKOrN(
+    """Create AKOrN model"""
+    model = AKOrN(
         n=config['n'],
         ch=config['ch'],
         out_classes=config['num_classes'],
         L=config['L'],
         T=config['T'],
         J=config['J'],
-        J_bias=config['J_bias'],
         ksizes=config['ksizes'],
         ro_ksize=config['ro_ksize'],
         ro_N=config['ro_N'],
@@ -215,6 +193,7 @@ def train_epoch(model, train_loader, criterion, optimizer, device, epoch, config
     
     return epoch_loss, epoch_acc
 
+
 def evaluate(model, test_loader, criterion, device):
     """Evaluate the model"""
     model.eval()
@@ -225,8 +204,7 @@ def evaluate(model, test_loader, criterion, device):
     class_correct = list(0. for i in range(10))
     class_total = list(0. for i in range(10))
     
-    classes = ('plane', 'car', 'bird', 'cat', 'deer',
-               'dog', 'frog', 'horse', 'ship', 'truck')
+    classes = tuple(str(i) for i in range(10))
     
     with torch.no_grad():
         for data, target in tqdm(test_loader, desc='Evaluating'):
@@ -259,13 +237,12 @@ def evaluate(model, test_loader, criterion, device):
     return test_loss, test_acc, class_accuracies
 
 
-def save_checkpoint_with_config(model, optimizer, scheduler, epoch, loss, config, filename):
+def save_checkpoint_with_config(model, optimizer, epoch, loss, config, filename):
     """Save model checkpoint with configuration"""
     checkpoint = {
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-        'scheduler_state_dict': scheduler.state_dict(), 
         'loss': loss,
         'config': config
     }
@@ -283,10 +260,10 @@ def save_parameters(config, save_dir):
 
 def main():
     # Parse arguments
-    parser = argparse.ArgumentParser(description='CIFAR-10 AKOrN Classification using MyAKOrN')
+    parser = argparse.ArgumentParser(description='MNIST AKOrN Classification')
     
     # Wandb arguments
-    parser.add_argument('--wandb-project', default='my_akorn-cifar10', help='W&B project name')
+    parser.add_argument('--wandb-project', default='akorn-mnist', help='W&B project name')
     parser.add_argument('--wandb-entity', default=None, help='W&B entity name')
     parser.add_argument('--no-wandb', action='store_true', help='Disable W&B logging')
     
@@ -300,8 +277,7 @@ def main():
     parser.add_argument('--L', type=int, default=3, help='Number of layers')
     parser.add_argument('--T', type=int, default=3, help='Number of time steps per layer')
     parser.add_argument('--gamma', type=float, default=1.0, help='Integration step size')
-    parser.add_argument('--J', type=str, default='conv', choices=['conv', 'attn', 'conv_repeated_const'], help='Connectivity type')
-    parser.add_argument('--J_bias', type=str2bool, default=False, help='Bias of connection convolutions, no bias as default')
+    parser.add_argument('--J', type=str, default='conv', choices=['conv', 'attn'], help='Connectivity type')
     parser.add_argument('--ksizes', type=int, nargs='+', default=[9, 7, 5], help='Kernel sizes for each layer')
     parser.add_argument('--ro-ksize', type=int, default=3, help='Readout kernel size')
     parser.add_argument('--ro-N', type=int, default=2, help='Readout N parameter')
@@ -326,42 +302,11 @@ def main():
     
     # Experiment arguments
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
-    parser.add_argument('--experiment-name', type=str, default='my_akorn_cifar10', help='Experiment name')
-    parser.add_argument('--save-dir', type=str, default=None, help='Directory to save results. Defaults to [experiment_name]_[timestamp]')
-    parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint to resume training from')
-    parser.add_argument('--wandb-id', type=str, default=None, help='WandB run ID to resume') # この行を追加
-
-    parser.add_argument('--param-file', type=str, default=None,
-                     help='YAML file listing hyper-param sets')
-    parser.add_argument('--index', type=int, default=None,
-                        help='Which entry of YAML to load (0-based)')
-
+    parser.add_argument('--experiment-name', type=str, default='akorn_mnist10', help='Experiment name')
+    parser.add_argument('--save-dir', type=str, default='./results', help='Directory to save results')
     
     args = parser.parse_args()
     
-    # ── ★ Grid 展開ロジック ────────────────────────
-    if args.param_file is not None and args.index is not None:
-        with open(args.param_file) as f:
-            cfg = yaml.safe_load(f)['grid']
-        keys, lists = zip(*[(k, v if isinstance(v, list) else [v]) for k, v in cfg.items()])
-        combos = [dict(zip(keys, values)) for values in itertools.product(*lists)]
-        sel = combos[args.index]                      # PBS_ARRAYID 番目を選択
-        for k, v in sel.items(): setattr(args, k, v)  # argparse を上書き
-    # ──────────────────────────────────────────────
-    # # ── (★) YAML による上書き ─────────────────────────
-    # if args.param_file is not None and args.index is not None:
-    #     with open(args.param_file, 'r') as f:
-    #         sweep = yaml.safe_load(f)
-    #     cfg_from_yaml = sweep[args.index]
-    #     for k, v in cfg_from_yaml.items():
-    #         if hasattr(args, k):
-    #             setattr(args, k, v)
-    # # ────────────────────────────────────────────────
-
-    if args.save_dir is None:
-        current_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-        args.save_dir = f"./results/{args.experiment_name}_{current_time}"
-
     # Get configuration and override with command line arguments
     config = get_config()
     
@@ -375,7 +320,6 @@ def main():
         'T': args.T,
         'gamma': args.gamma,
         'J': args.J,
-        'J_bias': args.J_bias,
         'ksizes': args.ksizes,
         'ro_ksize': args.ro_ksize,
         'ro_N': args.ro_N,
@@ -416,20 +360,12 @@ def main():
     save_parameters(config, save_dir)
     
     # Initialize wandb
-    # main関数の中
     if not args.no_wandb:
-        # 再開用のIDを設定
-        resume_id = args.wandb_id if args.resume else None
-
-        run_name = f"{config['experiment_name']}_T{args.T}_gamma{args.gamma}"
-        #run_name = f"{config['experiment_name']}_{int(time.time())}"
         wandb.init(
             project=args.wandb_project,
             entity=args.wandb_entity,
             config=config,
-            name=run_name,
-            id=resume_id, # この行を追加
-            resume="allow" # この行を追加
+            name=f"{config['experiment_name']}_{int(time.time())}"
         )
     
     # Print configuration
@@ -462,7 +398,6 @@ def main():
             'model/trainable_params': trainable_params,
             'model/size_mb': total_params * 4 / 1e6
         })
-        wandb.watch(model, log='all', log_freq=config['log_interval'])
     
     # Loss function and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -473,31 +408,11 @@ def main():
     )
     
     # Learning rate scheduler
-    scheduler = optim.lr_scheduler.LambdaLR(
-        optimizer,
-        lr_lambda=lambda epoch: 1.0        # ← 何 epoch たっても lr を変えない
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, 
+        T_max=config['epochs'],
+        eta_min=config['lr'] * 0.01
     )
-    # scheduler = optim.lr_scheduler.CosineAnnealingLR(
-    #     optimizer, 
-    #     T_max=config['epochs'],
-    #     eta_min=config['lr'] * 0.01
-    # )
-
-    start_epoch = 0 # 開始エポックを初期化
-
-    # Resume from checkpoint if specified
-    if args.resume:
-        if os.path.isfile(args.resume):
-            print(f"=> loading checkpoint '{args.resume}'")
-            checkpoint = torch.load(args.resume, map_location=device)
-            model.load_state_dict(checkpoint['model_state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            if 'scheduler_state_dict' in checkpoint: # 古いチェックポイントとの互換性のため
-                scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-            start_epoch = checkpoint['epoch'] + 1
-            print(f"=> loaded checkpoint '{args.resume}' (epoch {checkpoint['epoch']})")
-        else:
-            print(f"=> no checkpoint found at '{args.resume}'")
     
     # Training history
     history = {
@@ -514,7 +429,7 @@ def main():
     print(f"\nStarting training for {config['epochs']} epochs...")
     print("-" * 60)
     
-    for epoch in range(start_epoch, config['epochs']):
+    for epoch in range(config['epochs']):
         # Train
         train_loss, train_acc = train_epoch(
             model, train_loader, criterion, optimizer, device, epoch, config
@@ -568,7 +483,7 @@ def main():
                 best_acc = test_acc
                 best_model_path = save_dir / f'best_model_acc_{best_acc:.2f}.pth'
                 save_checkpoint_with_config(
-                    model, optimizer, scheduler, epoch, test_loss, config, best_model_path
+                    model, optimizer, epoch, test_loss, config, best_model_path
                 )
                 
                 # Log best accuracy to wandb
@@ -581,7 +496,7 @@ def main():
         if (epoch + 1) % config['save_interval'] == 0:
             checkpoint_path = save_dir / f'checkpoint_epoch_{epoch+1}.pth'
             save_checkpoint_with_config(
-                model, optimizer, scheduler, epoch, train_loss, config, checkpoint_path
+                model, optimizer, epoch, train_loss, config, checkpoint_path
             )
     
     total_time = time.time() - start_time
@@ -600,7 +515,7 @@ def main():
         print(f"  {class_name}: {acc:.2f}%")
     
     # Save final model and results
-    final_model_path = save_dir / 'my_akorn_cifar10_final.pth'
+    final_model_path = save_dir / 'akorn_mnist_final.pth'
     torch.save({
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
@@ -643,8 +558,8 @@ def main():
     
     # Save final results summary
     results_summary = {
-        'model': 'MyAKOrN',
-        'dataset': 'CIFAR-10',
+        'model': 'AKOrN',
+        'dataset': 'MNIST',
         'final_test_accuracy': final_test_acc,
         'best_test_accuracy': best_acc,
         'total_parameters': total_params,

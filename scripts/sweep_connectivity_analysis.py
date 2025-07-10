@@ -22,7 +22,7 @@ sys.path.append('source')
 from models.classification.my_knet import MyAKOrN
 from models.classification.analysis_utils import AKOrNStaticAnalyzer
 
-def load_and_analyze_sweep(sweep_dir, layer_idx=0, results_dir="results"):
+def load_and_analyze_sweep(sweep_dir, results_dir="results"):
     """Load and analyze a single sweep configuration."""
     results_dir = Path(results_dir)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -74,27 +74,25 @@ def load_and_analyze_sweep(sweep_dir, layer_idx=0, results_dir="results"):
         model.load_state_dict(checkpoint['model_state_dict'])
         model.eval()
         
-        # Create analyzer
-        analyzer = AKOrNStaticAnalyzer(model, device)
-        
-        # Perform analysis
-        analyzer.analyze_full_connectivity(layer_idx)
-        
-        print(f"  Successfully analyzed {sweep_dir}")
-        return analyzer, gamma, T
+        print(f"  Successfully loaded {sweep_dir}")
+        return model, gamma, T
         
     except Exception as e:
         print(f"  Error processing {sweep_dir}: {e}")
         return None, gamma, T
 
-def save_plots_for_sweep(sweep_dir, analyzer, gamma, T, layer_idx=0):
+def save_plots_for_sweep(sweep_dir, model, gamma, T, layer_idx=0):
     """Generate and save all plots for a sweep configuration."""
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    # Create analyzer for specific layer
+    analyzer = AKOrNStaticAnalyzer(model, layer_idx, device)
     
     # Create output directory
     output_dir = Path(f"results/e2025_0710_sweep_connectivity_analysis/gamma{gamma}_T{T}/layer{layer_idx}")
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    print(f"Saving plots for {sweep_dir} (gamma={gamma}, T={T})...")
+    print(f"Saving plots for {sweep_dir} (gamma={gamma}, T={T}, layer={layer_idx})...")
     
     try:
         # 1. Omega distributions
@@ -109,7 +107,7 @@ def save_plots_for_sweep(sweep_dir, analyzer, gamma, T, layer_idx=0):
         
         # 2. Connectivity statistics  
         try:
-            analyzer.plot_connectivity_statistics(layer_idx, show=False)
+            analyzer.plot_connectivity_statistics(show=False)
             plt.savefig(output_dir / "connectivity_statistics.png", bbox_inches='tight')
             plt.close('all')
             print(f"  Saved connectivity_statistics.png")
@@ -119,7 +117,7 @@ def save_plots_for_sweep(sweep_dir, analyzer, gamma, T, layer_idx=0):
         
         # 3. Frobenius norms summary (kernel)
         try:
-            analyzer.plot_Frob_norms_summary(layer_idx, 'kernel', show=False)
+            analyzer.plot_Frob_norms_summary('kernel', show=False)
             plt.savefig(output_dir / "frob_norms_kernel.png", bbox_inches='tight')
             plt.close('all')
             print(f"  Saved frob_norms_kernel.png")
@@ -129,7 +127,7 @@ def save_plots_for_sweep(sweep_dir, analyzer, gamma, T, layer_idx=0):
         
         # 4. Frobenius norms summary (channels)
         try:
-            analyzer.plot_Frob_norms_summary(layer_idx, 'channels', show=False)
+            analyzer.plot_Frob_norms_summary('channels', show=False)
             plt.savefig(output_dir / "frob_norms_channels.png", bbox_inches='tight')
             plt.close('all')
             print(f"  Saved frob_norms_channels.png")
@@ -139,7 +137,7 @@ def save_plots_for_sweep(sweep_dir, analyzer, gamma, T, layer_idx=0):
         
         # 5. Decomposition results (symmetric_skew)
         try:
-            analyzer.plot_decomposition_results(layer_idx, 'symmetric_skew', show=False)
+            analyzer.plot_decomposition_results('symmetric_skew', show=False)
             plt.savefig(output_dir / "decomposition_symmetric_skew.png", bbox_inches='tight')
             plt.close('all')
             print(f"  Saved decomposition_symmetric_skew.png")
@@ -149,7 +147,7 @@ def save_plots_for_sweep(sweep_dir, analyzer, gamma, T, layer_idx=0):
         
         # 6. Decomposition results (rotation_symmetric)
         try:
-            analyzer.plot_decomposition_results(layer_idx, 'rotation_symmetric', show=False)
+            analyzer.plot_decomposition_results('rotation_symmetric', show=False)
             plt.savefig(output_dir / "decomposition_rotation_symmetric.png", bbox_inches='tight')
             plt.close('all')
             print(f"  Saved decomposition_rotation_symmetric.png")
@@ -159,7 +157,7 @@ def save_plots_for_sweep(sweep_dir, analyzer, gamma, T, layer_idx=0):
         
         # 7. Torus visualization
         try:
-            analyzer.plot_torus_visualization(layer_idx, show=False)
+            analyzer.plot_torus_visualization(show=False)
             plt.savefig(output_dir / "torus_visualization.png", bbox_inches='tight')
             plt.close('all')
             print(f"  Saved torus_visualization.png")
@@ -170,6 +168,8 @@ def save_plots_for_sweep(sweep_dir, analyzer, gamma, T, layer_idx=0):
     except Exception as e:
         print(f"  General error in save_plots_for_sweep: {e}")
         plt.close('all')
+    
+    return analyzer
 
 def main():
     """Main analysis function."""
@@ -197,56 +197,63 @@ def main():
     print(f"Will analyze {len(sweep_dirs)} sweep directories")
     
     # Process all sweep directories
-    analyzers = {}
+    models = {}
     configs = {}
     
     for sweep_dir in sweep_dirs:
-        analyzer, gamma, T = load_and_analyze_sweep(sweep_dir, layer_idx=0)
-        if analyzer:
-            analyzers[sweep_dir] = analyzer
+        model, gamma, T = load_and_analyze_sweep(sweep_dir)
+        if model is not None:
+            models[sweep_dir] = model
             configs[sweep_dir] = {'gamma': gamma, 'T': T}
     
-    print(f"\\nSuccessfully processed {len(analyzers)} sweep configurations")
+    print(f"\\nSuccessfully processed {len(models)} sweep configurations")
     
     # Save plots for all analyzed sweeps (all 3 layers)
+    layer0_analyzers = {}  # Store layer 0 analyzers for summary statistics
+    
     for layer_idx in range(3):
-        for sweep_dir, analyzer in analyzers.items():
+        for sweep_dir, model in models.items():
             config = configs[sweep_dir]
-            save_plots_for_sweep(sweep_dir, analyzer, config['gamma'], config['T'], layer_idx=layer_idx)
+            analyzer = save_plots_for_sweep(sweep_dir, model, config['gamma'], config['T'], layer_idx=layer_idx)
+            
+            # Store layer 0 analyzer for summary statistics
+            if layer_idx == 0:
+                layer0_analyzers[sweep_dir] = analyzer
     
     # Generate summary statistics
     print("\\n=== Summary Statistics ===")
     summary_data = []
     
-    for sweep_dir, analyzer in analyzers.items():
-        if analyzer.decomposition_results:
-            config = configs[sweep_dir]
-            results = analyzer.decomposition_results
-            sym_skew = results['symmetric_skew']
-            rot_sym = results['rotation_symmetric']
-            
-            summary = {
-                'sweep_dir': sweep_dir,
-                'gamma': config['gamma'],
-                'T': config['T'],
-                'sym_frob_mean': sym_skew['sym_frob'].mean(),
-                'sym_frob_std': sym_skew['sym_frob'].std(),
-                'skew_frob_mean': sym_skew['skew_frob'].mean(),
-                'skew_frob_std': sym_skew['skew_frob'].std(),
-                'c_R_mean': rot_sym['c_R'].mean(),
-                'c_R_std': rot_sym['c_R'].std(),
-                'c_S_mean': rot_sym['c_S'].mean(),
-                'c_S_std': rot_sym['c_S'].std(),
-                'alpha_std': rot_sym['alpha'].std(),
-                'beta_std': rot_sym['beta'].std()
-            }
-            summary_data.append(summary)
-            
-            print(f"{sweep_dir}: gamma={config['gamma']}, T={config['T']}")
-            print(f"  sym_frob: {summary['sym_frob_mean']:.4f} ± {summary['sym_frob_std']:.4f}")
-            print(f"  skew_frob: {summary['skew_frob_mean']:.4f} ± {summary['skew_frob_std']:.4f}")
-            print(f"  c_R: {summary['c_R_mean']:.4f} ± {summary['c_R_std']:.4f}")
-            print(f"  c_S: {summary['c_S_mean']:.4f} ± {summary['c_S_std']:.4f}")
+    for sweep_dir, analyzer in layer0_analyzers.items():
+        # Compute decomposition for layer 0 to get summary statistics
+        connectivity_blocks = analyzer.extract_connectivity_blocks()
+        p1, p2, p3, q, sym_frob, skew_frob = analyzer.decompose_symmetric_skew(connectivity_blocks)
+        c_R, c_S, alpha, beta = analyzer.decompose_rotation_symmetric(connectivity_blocks)
+        
+        config = configs[sweep_dir]
+        
+        summary = {
+            'sweep_dir': sweep_dir,
+            'gamma': config['gamma'],
+            'T': config['T'],
+            'sym_frob_mean': sym_frob.mean(),
+            'sym_frob_std': sym_frob.std(),
+            'skew_frob_mean': skew_frob.mean(),
+            'skew_frob_std': skew_frob.std(),
+            'c_R_mean': c_R.mean(),
+            'c_R_std': c_R.std(),
+            'c_S_mean': c_S.mean(),
+            'c_S_std': c_S.std(),
+            'alpha_std': alpha.std(),
+            'beta_std': beta.std()
+        }
+        summary_data.append(summary)
+        
+        print(f"{sweep_dir}: gamma={config['gamma']}, T={config['T']}")
+        print(f"  sym_frob: {summary['sym_frob_mean']:.4f} ± {summary['sym_frob_std']:.4f}")
+        print(f"  skew_frob: {summary['skew_frob_mean']:.4f} ± {summary['skew_frob_std']:.4f}")
+        print(f"  c_R: {summary['c_R_mean']:.4f} ± {summary['c_R_std']:.4f}")
+        print(f"  c_S: {summary['c_S_mean']:.4f} ± {summary['c_S_std']:.4f}")
     
     print(f"\\nAnalysis complete! Individual plots saved to: results/e2025_0710_sweep_connectivity_analysis/gamma{{gamma}}_T{{T}}/")
     
