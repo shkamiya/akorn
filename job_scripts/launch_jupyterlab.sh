@@ -3,6 +3,8 @@
 #PBS -l select=1
 #PBS -l walltime=04:00:00
 #PBS -N jupyterlab
+#PBS -o jupyter.out
+#PBS -e jupyter.err
 #PBS -j oe
 #PBS -W group_list=gj26
 
@@ -13,7 +15,7 @@ WORKDIR=/work/gj26/b20109/akorn
 
 module purge
 module load singularity
-cd "$WORKDIR"
+# cd "$WORKDIR"
 
 # JupyterLab を Singularity 内で起動
 singularity exec --nv \
