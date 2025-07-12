@@ -16,11 +16,12 @@ import matplotlib.pyplot as plt
 from typing import Dict, List, Tuple, Optional
 import warnings
 warnings.filterwarnings("ignore")
+from datetime import datetime
 
 # Add source directory to path
-sys.path.append('source')
-from models.classification.my_knet import MyAKOrN
-from models.classification.analysis_utils import AKOrNStaticAnalyzer
+# sys.path.append('source')
+from source.models.classification.my_knet import MyAKOrN
+from source.models.classification.analysis_utils import AKOrNStaticAnalyzer
 
 def load_and_analyze_sweep(sweep_dir, results_dir="results"):
     """Load and analyze a single sweep configuration."""
@@ -81,15 +82,18 @@ def load_and_analyze_sweep(sweep_dir, results_dir="results"):
         print(f"  Error processing {sweep_dir}: {e}")
         return None, gamma, T
 
-def save_plots_for_sweep(sweep_dir, model, gamma, T, layer_idx=0):
+def save_plots_for_sweep(sweep_dir, model, gamma, T, layer_idx=0, today_str=None):
     """Generate and save all plots for a sweep configuration."""
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     # Create analyzer for specific layer
     analyzer = AKOrNStaticAnalyzer(model, layer_idx, device)
     
+    # today is
+    today_str = datetime.today().strftime('%Y%m%d') if today_str is None else today_str
+
     # Create output directory
-    output_dir = Path(f"results/e2025_0710_sweep_connectivity_analysis/gamma{gamma}_T{T}/layer{layer_idx}")
+    output_dir = Path(f"results/sweep_connectivity_analysis_{today_str}/gamma{gamma}_T{T}/layer{layer_idx}")
     output_dir.mkdir(parents=True, exist_ok=True)
     
     print(f"Saving plots for {sweep_dir} (gamma={gamma}, T={T}, layer={layer_idx})...")
@@ -210,11 +214,14 @@ def main():
     
     # Save plots for all analyzed sweeps (all 3 layers)
     layer0_analyzers = {}  # Store layer 0 analyzers for summary statistics
+
+    # today is
+    today_str = datetime.today().strftime('%Y%m%d')
     
     for layer_idx in range(3):
         for sweep_dir, model in models.items():
             config = configs[sweep_dir]
-            analyzer = save_plots_for_sweep(sweep_dir, model, config['gamma'], config['T'], layer_idx=layer_idx)
+            analyzer = save_plots_for_sweep(sweep_dir, model, config['gamma'], config['T'], layer_idx=layer_idx, today_str=today_str)
             
             # Store layer 0 analyzer for summary statistics
             if layer_idx == 0:
@@ -255,10 +262,10 @@ def main():
         print(f"  c_R: {summary['c_R_mean']:.4f} ± {summary['c_R_std']:.4f}")
         print(f"  c_S: {summary['c_S_mean']:.4f} ± {summary['c_S_std']:.4f}")
     
-    print(f"\\nAnalysis complete! Individual plots saved to: results/e2025_0710_sweep_connectivity_analysis/gamma{{gamma}}_T{{T}}/")
+    print(f"\\nAnalysis complete! Individual plots saved to: results/sweep_connectivity_analysis_{today_str}/gamma{{gamma}}_T{{T}}/")
     
     # Save summary data as JSON
-    summary_path = Path("results/e2025_0710_sweep_connectivity_analysis/summary_statistics.json")
+    summary_path = Path(f"results/sweep_connectivity_analysis_{today_str}/summary_statistics.json")
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     
     # Convert numpy types to Python types for JSON serialization
