@@ -21,3 +21,5 @@ singularity exec --nv \
   --pwd /workspace \
   "$SIF" \
   jupyter lab --ip=0.0.0.0 --port=$PORT --no-browser
+
+echo "JupyterLab has been activated..."
