@@ -76,15 +76,17 @@ class KLayer(nn.Module):  # Kuramoto layer
         heads=8,
         learn_omg=True,
         apply_proj=True,
+        bp_steps=None,   #added by SK on Jul 16, 2025
     ):
         # connnectivity is either 'conv' or 'ca'
         super().__init__()
         assert (ch % n) == 0
         self.n = n
         self.ch = ch
-        self.use_omega = use_omega
+        self.use_omega  = use_omega
         self.global_omg = global_omg
         self.apply_proj = apply_proj
+        self.bp_steps   = bp_steps
 
         self.omg = (
             OmegaLayer(n, ch, init_omg, global_omg, learn_omg)
@@ -152,16 +154,25 @@ class KLayer(nn.Module):  # Kuramoto layer
 
         return dxdt, sim
 
-    def forward(self, x: torch.Tensor, c: torch.Tensor, T: int, gamma):
+    def forward(self, x: torch.Tensor, c: torch.Tensor, T: int, gamma):#, bp_steps: int = None):
         # x.shape = c.shape = [B, C,...] or [B, T, C]
         xs, es = [], []
         c = self.c_norm(c)
         x = normalize(x, self.n)
         es.append(torch.zeros(x.shape[0]).to(x.device))
+
+        bp_steps = T if self.bp_steps is None else min(self.bp_steps, T)
+
         # Iterate kuramoto update with condition c
         for t in range(T):
-            dxdt, _sim = self.kupdate(x, c)
-            x = normalize(x + gamma * dxdt, self.n)
+            if t < T - bp_steps:
+                with torch.no_grad():
+                    dxdt, _sim = self.kupdate(x, c)
+                    x = normalize(x + gamma * dxdt, self.n)
+                x = x.detach()
+            else:
+                dxdt, _sim = self.kupdate(x, c)
+                x = normalize(x + gamma * dxdt, self.n)
             xs.append(x)
             es.append((-_sim).reshape(x.shape[0], -1).sum(-1))
 

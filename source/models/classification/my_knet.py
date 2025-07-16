@@ -58,6 +58,7 @@ class MyAKOrN(nn.Module):
         global_omg=True,
         learn_omg=True,
         ensemble=1,
+        bp_steps=None,
     ):
         super().__init__()
         
@@ -70,10 +71,11 @@ class MyAKOrN(nn.Module):
         # Expand parameters to match number of layers
         self.ns = self._expand_param(n, L)
         self.T = self._expand_param(T, L)
+        self.bp_steps = self._expand_param(bp_steps,L)
         J = self._expand_param(J, L)
         ksizes = self._expand_param(ksizes, L)
         ro_N = self._expand_param(ro_N, L)
-        
+                
         # Calculate layer dimensions
         strides = [2, 2, 2] + [1] * (L - 3)
         channels = [ch * (2**i) for i in range(L)]
@@ -163,6 +165,7 @@ class MyAKOrN(nn.Module):
                 learn_omg=learn_omg,
                 ksize=ksizes[l],
                 hw=hw_sizes[l],
+                bp_steps=self.bp_steps[l],
             )
             
             # Create readout block
@@ -177,6 +180,26 @@ class MyAKOrN(nn.Module):
             ]))
         
         return layers
+    
+    def feature_new(self, inp, train_last=None):
+        """Extract features from input through the network layers."""
+        # Initial processing
+        c = self.conv0(self.rgb_normalize(inp))
+        x = torch.randn_like(c)
+        xs, es = [], []
+
+        # Process through each layer
+        for l, (transition_layer, _, k_layer, readout_layer, _) in enumerate(self.layers):
+            x, c = transition_layer[0](x), transition_layer[1](c)
+            layer_xs, layer_es = k_layer(x, c, self.T[l], self.gamma)
+            xs.append(layer_xs)
+            es.append(layer_es)
+            x = layer_xs[-1]
+            c = readout_layer(x)
+            
+        # Final pooling
+        x, c = map(self.pool, (x, c))
+        return c, x, xs, es
 
     def feature(self, inp):
         """Extract features from input through the network layers."""
@@ -247,6 +270,7 @@ class AKOrNResNet(nn.Module):
             L=1,
             out_classes=10,
             transform_to_theta=False,
+            bp_steps=3,
             ):
         
         super().__init__()
@@ -262,6 +286,7 @@ class AKOrNResNet(nn.Module):
             global_omg=False,
             learn_omg=True,
             out_classes=out_classes,
+            bp_steps=bp_steps,
         )
         self.n  = n
         self.ch = ch
