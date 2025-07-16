@@ -11,7 +11,7 @@ from source.layers.common_layers import (
     BNReLUConv2d,
 )
 from source.layers.common_fns import positionalencoding2d
-
+from torchvision.models.resnet import BasicBlock
 
 class MyAKOrN(nn.Module):
     """
@@ -230,6 +230,98 @@ class MyAKOrN(nn.Module):
                 logits = self.out(features)
                 logits_list.append(logits)
             return torch.stack(logits_list).mean(0)
+
+
+class AKOrNResNet(nn.Module):
+    """
+    L-layer AKOrN + ResNet
+    """
+
+    def __init__(
+            self,
+            n=2,
+            ch=128,
+            T=15,
+            gamma=0.01,
+            ksizes=[9,7,5],
+            L=1,
+            out_classes=10,
+            transform_to_theta=False,
+            ):
+        
+        super().__init__()
+        self.kur1 = MyAKOrN(
+            n=n,
+            ch=ch,
+            L=L,
+            T=T,
+            ksizes=ksizes,
+            gamma=gamma,
+            use_omega=True,
+            init_omg=1.0,
+            global_omg=False,
+            learn_omg=True,
+            out_classes=out_classes,
+        )
+        self.n  = n
+        self.ch = ch
+        self.transform_to_theta = transform_to_theta
+        
+        # For debugging
+        self.c, self.x, self.xs, self.es = None, None, None, None
+        # self.x = None
+        # self.xs = None
+        # self.es = Nones
+        
+        def make_layer(in_ch, out_ch, blocks, stride):
+            # ① 先頭ブロック用の downsample を準備
+            downsample = None
+            if stride != 1 or in_ch != out_ch:
+                downsample = nn.Sequential(
+                    nn.Conv2d(in_ch, out_ch, kernel_size=1, stride=stride, bias=False),
+                    nn.BatchNorm2d(out_ch),
+                )
+
+            # ② ブロックを積む
+            layers = [BasicBlock(in_ch, out_ch, stride, downsample)]
+            for _ in range(1, blocks):
+                layers.append(BasicBlock(out_ch, out_ch))  # 2 枚目以降 stride=1
+            return nn.Sequential(*layers)
+
+        if self.transform_to_theta and self.n == 2:
+            dim = ch // n
+        else:
+            dim = ch
+
+        self.layer1 = make_layer(dim, dim, 2, 1)
+        self.layer2 = make_layer(dim, 2*dim, 2, 2)
+        self.layer3 = make_layer(2*dim, 4*dim, 2, 2)
+        self.layer4 = make_layer(4*dim, 8*dim, 2, 2)
+        self.pool   = nn.AdaptiveAvgPool2d(1)
+        self.fc     = nn.Linear(8*dim, out_classes)
+
+
+    def forward(self, inp):
+        _, _, xs, es = self.kur1.feature(inp)
+        # self.c = c
+        # self.x = x
+        self.xs = xs
+        self.es = es
+
+        self.x = xs[-1][-1]
+        self.c = self.kur1.layers[-1][3](self.x)
+        
+        if self.transform_to_theta and self.n==2:
+            y = torch.atan2(self.c[:,1::2,:,:], self.c[:,0::2,:,:])
+        else:
+            y = self.c
+        
+        y = self.layer1(y)
+        y = self.layer2(y)
+        y = self.layer3(y)
+        y = self.layer4(y)
+        y = self.pool(y).flatten(1)
+        return self.fc(y)
 
 
 class MyAKOrNSimplerReadout(nn.Module):
