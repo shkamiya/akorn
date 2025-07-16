@@ -2,7 +2,7 @@
 #PBS -q short-g
 #PBS -l select=1
 #PBS -l walltime=06:00:00
-#PBS -N sweep_my_akorn_cifar10
+#PBS -N sweep_my_akorn_cifar10_small_kernel
 #PBS -o logs/
 #PBS -e logs/
 #PBS -j oe
@@ -18,7 +18,7 @@ cd $PBS_O_WORKDIR
 
 export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
-export WANDB_PROJECT=sweep_my_akorn_cifar10
+export WANDB_PROJECT=sweep_my_akorn_cifar10_small_kernel
 
 TODAY=$(date '+%Y%m%d')
 
@@ -28,8 +28,8 @@ singularity exec --nv \
   --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
   ~/singularity/kamiya_miyabi.sif \
   python scripts/cifar10_myakorn_classification.py \
-      --wandb-project sweep_my_akorn_cifar10  \
-      --experiment-name sweep_my_akorn_cifar10 \
+      --wandb-project sweep_my_akorn_cifar10_small_kernel  \
+      --experiment-name sweep_my_akorn_cifar10_small_kernel \
       --epochs 30 \
       --batch-size 64 \
       --lr 1e-4 \
