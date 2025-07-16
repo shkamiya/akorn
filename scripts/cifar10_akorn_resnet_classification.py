@@ -68,7 +68,7 @@ def get_config():
         # Model architecture
         'n': 2,              # Oscillator dimension (2D for complex oscillators)
         'ch': 64,            # Base number of channels
-        'L': 3,              # Number of layers
+        'L': 1,              # Number of layers
         'T': 3,              # Number of time steps per layer
         'gamma': 1.0,        # Integration step size
         'J': 'conv',         # Connectivity type ('conv', 'attn' or 'conv_repeated_const')
@@ -152,7 +152,7 @@ def create_model(config, device):
         n=config['n'],
         ch=config['ch'],
         out_classes=config['num_classes'],
-        L=1, #config['L'],
+        L=config['L'],
         T=config['T'],
         ksizes=config['ksizes'],
         gamma=config['gamma'],

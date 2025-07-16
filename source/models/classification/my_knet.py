@@ -293,12 +293,18 @@ class AKOrNResNet(nn.Module):
         else:
             dim = ch
 
-        self.layer1 = make_layer(dim, dim, 2, 1)
-        self.layer2 = make_layer(dim, 2*dim, 2, 2)
-        self.layer3 = make_layer(2*dim, 4*dim, 2, 2)
-        self.layer4 = make_layer(4*dim, 8*dim, 2, 2)
+        # To compare to 
+        self.layer1 = make_layer(dim, 2*dim, 2, 2)
+        self.layer2 = make_layer(2*dim, 4*dim, 2, 2)
         self.pool   = nn.AdaptiveAvgPool2d(1)
-        self.fc     = nn.Linear(8*dim, out_classes)
+        self.fc     = nn.Linear(4*dim, out_classes)
+
+        # self.layer1 = make_layer(dim, dim, 2, 1)
+        # self.layer2 = make_layer(dim, 2*dim, 2, 2)
+        # self.layer3 = make_layer(2*dim, 4*dim, 2, 2)
+        # self.layer4 = make_layer(4*dim, 8*dim, 2, 2)
+        # self.pool   = nn.AdaptiveAvgPool2d(1)
+        # self.fc     = nn.Linear(8*dim, out_classes)
 
 
     def forward(self, inp):
@@ -318,8 +324,8 @@ class AKOrNResNet(nn.Module):
         
         y = self.layer1(y)
         y = self.layer2(y)
-        y = self.layer3(y)
-        y = self.layer4(y)
+        #y = self.layer3(y)
+        #y = self.layer4(y)
         y = self.pool(y).flatten(1)
         return self.fc(y)
 
