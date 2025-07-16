@@ -80,7 +80,7 @@ def get_config():
         'c_norm': 'gn',      # C normalization type
         'use_omega': True,   # Use natural frequencies
         'init_omg': 1.0,     # Initial omega value
-        'global_omg': True,  # Global omega parameter
+        'global_omg': False,  # Global omega parameter
         'learn_omg': True,   # Learn omega parameters
         'ensemble': 1,       # Ensemble size
         'bp_steps': None,    # Steps to apply BP for each layer
@@ -302,7 +302,7 @@ def main():
     parser.add_argument('--global-omg', type=str2bool, default=True, help='Global omega parameter')
     parser.add_argument('--learn-omg', type=str2bool, default=True, help='Learn omega parameters')
     parser.add_argument('--ensemble', type=int, default=1, help='Ensemble size')
-    parser.add_argument('--bp_steps', type=int, default=3, help='Steps of back propagations in each layer, can be None or an L-element list of the numbers to apply BP')
+    parser.add_argument('--bp_steps', type=int, default=None, help='Steps of back propagations in each layer, can be None or an L-element list of the numbers to apply BP')
     
     # Training arguments
     parser.add_argument('--epochs', type=int, default=100, help='Number of training epochs')
@@ -377,7 +377,7 @@ def main():
         'global_omg': args.global_omg,
         'learn_omg': args.learn_omg,
         'ensemble': args.ensemble,
-        'bp_steps': ars.bp_steps,
+        'bp_steps': args.bp_steps,
         'epochs': args.epochs,
         'lr': args.lr,
         'weight_decay': args.weight_decay,

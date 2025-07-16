@@ -266,7 +266,7 @@ class AKOrNResNet(nn.Module):
             ch=128,
             T=15,
             gamma=0.01,
-            ksizes=[9,7,5],
+            ksizes=3,
             L=1,
             out_classes=10,
             transform_to_theta=False,
@@ -334,8 +334,6 @@ class AKOrNResNet(nn.Module):
 
     def forward(self, inp):
         _, _, xs, es = self.kur1.feature(inp)
-        # self.c = c
-        # self.x = x
         self.xs = xs
         self.es = es
 
