@@ -1,0 +1,11 @@
+# parameter sweep using cifar10_akorn_resnet_slim_classification.py
+grid:
+  n:        [2]
+  ch:       [128]
+  L:        [1]
+  T:        [3, 31, 63, 127, 255]
+  gamma:    [0.01]
+  ksizes:   [3, 9]
+  J_bias:   [False]
+  global_omg: [False]
+  bp_steps : [null,3,1]

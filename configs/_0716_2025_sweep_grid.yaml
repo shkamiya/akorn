@@ -6,5 +6,5 @@ grid:
   T:        [3, 7, 15, 31, 63, 127]
   gamma:    [0.01]
   ksizes:   [3, 5, 9]
-  J_bias:   [false]
-  global_omg: [false]
+  J_bias:   [False]
+  global_omg: [False]
