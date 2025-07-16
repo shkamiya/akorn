@@ -1,0 +1,39 @@
+[I 2025-07-13 06:50:09.650 ServerApp] jupyter_lsp | extension was successfully linked.
+[I 2025-07-13 06:50:09.653 ServerApp] jupyter_server_terminals | extension was successfully linked.
+[I 2025-07-13 06:50:09.656 ServerApp] jupyterlab | extension was successfully linked.
+[I 2025-07-13 06:50:09.656 ServerApp] jupyterlab_code_formatter | extension was successfully linked.
+[I 2025-07-13 06:50:09.656 ServerApp] jupyterlab_jupytext | extension was successfully linked.
+[I 2025-07-13 06:50:09.656 ServerApp] jupyterlab_tensorboard_pro | extension was successfully linked.
+[I 2025-07-13 06:50:09.660 ServerApp] notebook | extension was successfully linked.
+[I 2025-07-13 06:50:09.920 ServerApp] notebook_shim | extension was successfully linked.
+[I 2025-07-13 06:50:09.940 ServerApp] notebook_shim | extension was successfully loaded.
+[I 2025-07-13 06:50:09.941 ServerApp] jupyter_lsp | extension was successfully loaded.
+[I 2025-07-13 06:50:09.943 ServerApp] jupyter_server_terminals | extension was successfully loaded.
+[I 2025-07-13 06:50:09.944 LabApp] JupyterLab extension loaded from /usr/local/lib/python3.12/dist-packages/jupyterlab
+[I 2025-07-13 06:50:09.944 LabApp] JupyterLab application directory is /usr/local/share/jupyter/lab
+[I 2025-07-13 06:50:09.945 LabApp] Extension Manager is 'pypi'.
+[I 2025-07-13 06:50:09.992 ServerApp] jupyterlab | extension was successfully loaded.
+[I 2025-07-13 06:50:09.992 ServerApp] Registered jupyterlab_code_formatter server extension
+[I 2025-07-13 06:50:09.992 ServerApp] jupyterlab_code_formatter | extension was successfully loaded.
+[I 2025-07-13 06:50:09.992 ServerApp] [Jupytext Server Extension] NotebookApp.contents_manager_class is (a subclass of) jupytext.TextFileContentsManager already - OK
+[I 2025-07-13 06:50:09.992 ServerApp] jupyterlab_jupytext | extension was successfully loaded.
+[I 2025-07-13 06:50:10.542 ServerApp] jupyterlab_tensorboard_pro extension loaded.
+[I 2025-07-13 06:50:10.542 ServerApp] jupyterlab_tensorboard_pro | extension was successfully loaded.
+[I 2025-07-13 06:50:10.546 ServerApp] notebook | extension was successfully loaded.
+[I 2025-07-13 06:50:10.547 ServerApp] Serving notebooks from local directory: /workspace
+[I 2025-07-13 06:50:10.547 ServerApp] Jupyter Server 2.15.0 is running at:
+[I 2025-07-13 06:50:10.547 ServerApp] http://hostname:8888/lab?token=08558201654a8be4d621c26d05e01ce781cadc79197bf6be
+[I 2025-07-13 06:50:10.547 ServerApp]     http://127.0.0.1:11007/lab?token=08558201654a8be4d621c26d05e01ce781cadc79197bf6be
+[I 2025-07-13 06:50:10.547 ServerApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 2025-07-13 06:50:10.551 ServerApp] 
+    
+    To access the server, open this file in a browser:
+        file:///work/gj26/b20109/.local/share/jupyter/runtime/jpserver-1114768-open.html
+    Or copy and paste one of these URLs:
+        http://hostname:8888/lab?token=08558201654a8be4d621c26d05e01ce781cadc79197bf6be
+        http://127.0.0.1:11007/lab?token=08558201654a8be4d621c26d05e01ce781cadc79197bf6be
+[I 2025-07-13 06:50:10.577 ServerApp] Skipped non-installed server(s): bash-language-server, dockerfile-language-server-nodejs, javascript-typescript-langserver, jedi-language-server, julia-language-server, pyright, python-language-server, python-lsp-server, r-languageserver, sql-language-server, texlab, typescript-language-server, unified-language-server, vscode-css-languageserver-bin, vscode-html-languageserver-bin, vscode-json-languageserver-bin, yaml-language-server
+[C 2025-07-13 06:57:27.165 ServerApp] received signal 15, stopping
+[C 2025-07-13 06:57:27.166 ServerApp] received signal 15, stopping
+[I 2025-07-13 06:57:27.167 ServerApp] Shutting down 8 extensions
+[I 2025-07-13 06:57:27.168 ServerApp] Shutting down 8 extensions
