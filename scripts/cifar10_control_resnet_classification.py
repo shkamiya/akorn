@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 """
-CIFAR-10 Classification with AKOrN using MyAKOrN + ResNet.
+CIFAR-10 Classification using ResNet. As a control for AKOrN + ResNet.
 
-This script trains an AKOrN model for CIFAR-10 image classification with wandb logging.
-AKOrN is based on the dynamics of Kuramoto oscillators and provides an alternative to traditional neural networks.
-
-References:
-- Miyato et al., "Artificial Kuramoto Oscillatory Neurons", ICLR 2025
 """
 
 import os
@@ -35,10 +30,8 @@ import wandb
 import yaml, copy
 import itertools
 
-# Add source directory to path
-sys.path.append('source')
-
-from models.classification.my_knet import MyAKOrN, AKOrNResNet
+#from models.classification.my_knet import MyAKOrN, AKOrNResNet
+from source.models.classification.other_models import ControlResNet
 from source.data.augs import augmentation_strong
 from source.my_training_utils import (
     set_seed, count_parameters, save_checkpoint_with_config, save_parameters
@@ -55,25 +48,9 @@ def get_config():
         'num_classes': 10,
         
         # Model architecture
-        'n': 2,              # Oscillator dimension (2D for complex oscillators)
-        'ch': 64,            # Base number of channels
-        'L': 1,              # Number of layers
-        'T': 3,              # Number of time steps per layer
-        'gamma': 1.0,        # Integration step size
-        'J': 'conv',         # Connectivity type ('conv', 'attn' or 'conv_repeated_const')
-        'J_bias': False,     # Connectivity bias turned off! by SK on Jul 4, 2025
-        'ksizes': 3, # Kernel sizes for each layer
-        'ro_ksize': 3,       # Readout kernel size
-        'ro_N': 2,           # Readout N parameter
-        'norm': 'bn',        # Normalization type
-        'c_norm': 'gn',      # C normalization type
-        'use_omega': True,   # Use natural frequencies
-        'init_omg': 1.0,     # Initial omega value
-        'global_omg': False,  # Global omega parameter
-        'learn_omg': True,   # Learn omega parameters
-        'ensemble': 1,       # Ensemble size
-        'bp_steps': None,    # Steps to apply BP for each layer
-        
+        'base_dim': 128,
+        'blocks': 3,
+
         # Training
         'epochs': 100,
         'lr': 1e-4,
@@ -138,15 +115,10 @@ def create_data_loaders(config):
 
 def create_model(config, device):
     """Create MyAKOrN model"""
-    model = AKOrNResNet(
-        n=config['n'],
-        ch=config['ch'],
-        out_classes=config['num_classes'],
-        L=config['L'],
-        T=config['T'],
-        ksizes=config['ksizes'],
-        gamma=config['gamma'],
-        bp_steps=config['bp_steps'],
+    model = ControlResNet(
+        base_dim=config['base_dim'],
+        num_classes=config['num_classes'],
+        blocks=config['blocks']
     ).to(device)
     
     return model

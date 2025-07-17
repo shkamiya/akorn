@@ -1,3 +1,3 @@
-for i in $(seq 0 29); do
+for i in $(seq 0 39); do
   qsub -v INDEX=$i job_scripts/cifar10_akorn_resnet_slim_classification_sweep.pbs
 done

@@ -1,8 +1,8 @@
 #!/bin/bash
-#PBS -q short-g
+#PBS -q regular-g
 #PBS -l select=1
-#PBS -l walltime=06:00:00
-#PBS -N sweep_akorn_resnet_slim_cifar10_ver2
+#PBS -l walltime=08:00:00
+#PBS -N sweep_akorn_resnet_slim_cifar10_ver3
 #PBS -o logs/
 #PBS -e logs/
 #PBS -j oe
@@ -16,7 +16,7 @@ cd $PBS_O_WORKDIR
 
 export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
-export WANDB_PROJECT=sweep_akorn_resnet_slim_cifar10_ver2
+export WANDB_PROJECT=sweep_akorn_resnet_slim_cifar10_ver3
 
 TODAY=$(date '+%Y%m%d')
 
@@ -27,8 +27,9 @@ singularity exec --nv \
   ~/singularity/kamiya_miyabi.sif \
   python scripts/cifar10_akorn_resnet_classification.py \
       --save-dir "results/${TODAY}_${PBS_JOBID}" \
-      --wandb-project sweep_akorn_resnet_slim_cifar10_ver2  \
-      --experiment-name sweep_akorn_resnet_slim_cifar10_ver2 \
+      --wandb-project sweep_akorn_resnet_slim_cifar10_ver3  \
+      --experiment-name sweep_akorn_resnet_slim_cifar10_ver3 \
+      --run-name "{experiment_name}_T{T}_k{ksizes}_J${PBS_JOBID}" \
       --epochs 30 \
       --batch-size 64 \
       --lr 1e-4 \

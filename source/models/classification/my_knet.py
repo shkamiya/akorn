@@ -157,7 +157,7 @@ class MyAKOrN(nn.Module):
                 n=self.ns[l],
                 ch=channels[l],
                 J=J[l],
-                J_bias=J_bias,          # Turned of bias in J! by SK, Jul 4 2025
+                J_bias=J_bias,          # Turned off bias in J! by SK, Jul 4 2025
                 c_norm=c_norm,
                 use_omega=use_omega,
                 init_omg=init_omg,

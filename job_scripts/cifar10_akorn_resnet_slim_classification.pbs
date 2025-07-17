@@ -32,7 +32,7 @@ singularity exec --nv \
       --epochs 10 \
       --batch-size 64 \
       --lr 1e-4 \
-      --n 2 --ch 128 --T 127 --L 1 --gamma 0.01 --bp_steps 1
+      --n 2 --ch 128 --T 127 --L 1 --gamma 0.01 --bp_steps null
 
 STATUS=$?   # 0=正常, それ以外=異常
 

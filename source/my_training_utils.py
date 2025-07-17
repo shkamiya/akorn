@@ -10,9 +10,12 @@ from typing import Dict, Any, Optional, Tuple
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from pathlib import Path
+import json
 try:
     import wandb
     HAS_WANDB = True
@@ -236,7 +239,7 @@ def get_scheduler(optimizer: torch.optim.Optimizer, config: Dict[str, Any]) -> t
         return torch.optim.lr_scheduler.StepLR(
             optimizer,
             step_size=config.get('step_size', 30),
-            gamma=config.get('gamma', 0.1)
+            gamma=config.get('decay_gamma', 0.1)
         )
     else:
         raise ValueError(f"Unknown scheduler type: {scheduler_type}")
