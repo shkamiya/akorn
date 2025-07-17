@@ -71,6 +71,7 @@ def get_config():
         'global_omg': True,  # Global omega parameter
         'learn_omg': True,   # Learn omega parameters
         'ensemble': 1,       # Ensemble size
+        'bp_steps': None,    # Steps to apply BP for each layer
         
         # Training
         'epochs': 100,
@@ -155,6 +156,7 @@ def create_model(config, device):
         global_omg=config['global_omg'],
         learn_omg=config['learn_omg'],
         ensemble=config['ensemble'],
+        bp_steps=config['bp_steps'],
     ).to(device)
     
     return model

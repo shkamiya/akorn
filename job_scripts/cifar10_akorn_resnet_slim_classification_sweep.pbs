@@ -29,11 +29,12 @@ singularity exec --nv \
       --save-dir "results/${TODAY}_${PBS_JOBID}" \
       --wandb-project sweep_akorn_resnet_slim_cifar10_ver3  \
       --experiment-name sweep_akorn_resnet_slim_cifar10_ver3 \
-      --run-name "{experiment_name}_T{T}_k{ksizes}_J${PBS_JOBID}" \
+      --run-name "{experiment_name}_T{T}_k{ksizes}_bplim{bp_steps}_J${PBS_JOBID}" \
       --epochs 30 \
       --batch-size 64 \
       --lr 1e-4 \
-      --param-file configs/_0717_2025_sweep_grid.yaml \
+      --param-file configs/_0718_2025_sweep_grid_2.yaml \
+      # --param-file configs/_0717_2025_sweep_grid.yaml \
       --index ${INDEX} \
       --save-dir "results/sweep_${TODAY}_${PBS_JOBID}_${INDEX}"
 

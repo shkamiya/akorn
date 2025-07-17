@@ -35,7 +35,8 @@ singularity exec --nv \
       --epochs 30 \
       --batch-size 64 \
       --lr 1e-4 \
-      --param-file configs/_0717_2025_sweep_grid_2.yaml \
+      --param-file configs/_0718_2025_sweep_grid.yaml \
+      # --param-file configs/_0717_2025_sweep_grid_2.yaml \
       --index ${INDEX} \
       --save-dir "results/sweep_${TODAY}_${PBS_JOBID}_${INDEX}"
 
