@@ -1,9 +1,9 @@
 *.pyc
 ＃experimental things
-results/
-data/
-logs/
-wandb/
+/results/
+/data/
+/logs/
+/wandb/
 
 # egg info that appears when pip install -e .
 *.egg-info
