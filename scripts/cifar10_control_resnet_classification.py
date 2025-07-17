@@ -30,13 +30,11 @@ import wandb
 import yaml, copy
 import itertools
 
-#from models.classification.my_knet import MyAKOrN, AKOrNResNet
 from source.models.classification.other_models import ControlResNet
 from source.data.augs import augmentation_strong
 from source.my_training_utils import (
     set_seed, count_parameters, save_checkpoint_with_config, save_parameters
 )
-from utils import str2bool
 
 def get_config():
     """Get training configuration"""
@@ -64,7 +62,7 @@ def get_config():
         
         # Experiment
         'seed': 42,
-        'experiment_name': 'akorn_resnet_cifar10',
+        'experiment_name': 'control_resnet_cifar10',
         'save_dir': None,
     }
     return config
@@ -114,7 +112,7 @@ def create_data_loaders(config):
 
 
 def create_model(config, device):
-    """Create MyAKOrN model"""
+    """Create Control ResNet model"""
     model = ControlResNet(
         base_dim=config['base_dim'],
         num_classes=config['num_classes'],
@@ -211,37 +209,19 @@ def evaluate(model, test_loader, criterion, device):
 
 def main():
     # Parse arguments
-    parser = argparse.ArgumentParser(description='CIFAR-10 AKOrN+ResNet Classification')
+    parser = argparse.ArgumentParser(description='CIFAR-10 ResNet Classification')
     
     # Wandb arguments
-    parser.add_argument('--wandb-project', default='akorn_resnet_cifar10', help='W&B project name')
+    parser.add_argument('--wandb-project', default='control_resnet_cifar10', help='W&B project name')
     parser.add_argument('--wandb-entity', default=None, help='W&B entity name')
     parser.add_argument('--no-wandb', action='store_true', help='Disable W&B logging')
     
     # Data arguments
     parser.add_argument('--batch-size', type=int, default=128, help='Batch size for training')
     parser.add_argument('--num-workers', type=int, default=4, help='Number of data loading workers')
-    
-    # Model architecture arguments
-    parser.add_argument('--n', type=int, default=2, help='Oscillator dimension (2D for complex oscillators)')
-    parser.add_argument('--ch', type=int, default=16, help='Base number of channels')
-    parser.add_argument('--L', type=int, default=1, help='Number of layers')
-    parser.add_argument('--T', type=int, default=15, help='Number of time steps per layer')
-    parser.add_argument('--gamma', type=float, default=.01, help='Integration step size')
-    parser.add_argument('--J', type=str, default='conv', choices=['conv', 'attn', 'conv_repeated_const'], help='Connectivity type')
-    parser.add_argument('--J_bias', type=str2bool, default=False, help='Bias of connection convolutions, no bias as default')
-    parser.add_argument('--ksizes', type=int, nargs='+', default=3, help='Kernel sizes for each layer')
-    parser.add_argument('--ro-ksize', type=int, default=3, help='Readout kernel size')
-    parser.add_argument('--ro-N', type=int, default=2, help='Readout N parameter')
-    parser.add_argument('--norm', type=str, default='bn', choices=['bn', 'gn', 'ln'], help='Normalization type')
-    parser.add_argument('--c-norm', type=str, default='gn', choices=['bn', 'gn', 'ln'], help='C normalization type')
-    parser.add_argument('--use-omega', type=str2bool, default=True, help='Use natural frequencies')
-    parser.add_argument('--init-omg', type=float, default=1.0, help='Initial omega value')
-    parser.add_argument('--global-omg', type=str2bool, default=True, help='Global omega parameter')
-    parser.add_argument('--learn-omg', type=str2bool, default=True, help='Learn omega parameters')
-    parser.add_argument('--ensemble', type=int, default=1, help='Ensemble size')
-    parser.add_argument('--bp_steps', type=int, default=None, help='Steps of back propagations in each layer, can be None or an L-element list of the numbers to apply BP')
-    
+    parser.add_argument('--base-dim', type=int, default=128, help='Number of channels')
+    parser.add_argument('--blocks', type=int, default=3, help='Number of blocks to pile up in the first layer')
+
     # Training arguments
     parser.add_argument('--epochs', type=int, default=100, help='Number of training epochs')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
@@ -255,7 +235,7 @@ def main():
     
     # Experiment arguments
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
-    parser.add_argument('--experiment-name', type=str, default='akorn_resnet_cifar10', help='Experiment name')
+    parser.add_argument('--experiment-name', type=str, default='control_resnet_cifar10', help='Experiment name')
     parser.add_argument('--save-dir', type=str, default=None, help='Directory to save results. Defaults to [experiment_name]_[timestamp]')
     parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint to resume training from')
     parser.add_argument('--wandb-id', type=str, default=None, help='WandB run ID to resume') # この行を追加
@@ -298,24 +278,8 @@ def main():
     config.update({
         'batch_size': args.batch_size,
         'num_workers': args.num_workers,
-        'n': args.n,
-        'ch': args.ch,
-        'L': args.L,
-        'T': args.T,
-        'gamma': args.gamma,
-        'J': args.J,
-        'J_bias': args.J_bias,
-        'ksizes': args.ksizes,
-        'ro_ksize': args.ro_ksize,
-        'ro_N': args.ro_N,
-        'norm': args.norm,
-        'c_norm': args.c_norm,
-        'use_omega': args.use_omega,
-        'init_omg': args.init_omg,
-        'global_omg': args.global_omg,
-        'learn_omg': args.learn_omg,
-        'ensemble': args.ensemble,
-        'bp_steps': args.bp_steps,
+        'blocks': args.blocks,
+        'base-dim': args.base_dim,
         'epochs': args.epochs,
         'lr': args.lr,
         'weight_decay': args.weight_decay,
@@ -536,7 +500,7 @@ def main():
         print(f"  {class_name}: {acc:.2f}%")
     
     # Save final model and results
-    final_model_path = save_dir / 'akorn_resnet_cifar10_final.pth'
+    final_model_path = save_dir / 'control_resnet_cifar10_final.pth'
     torch.save({
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
@@ -579,7 +543,7 @@ def main():
     
     # Save final results summary
     results_summary = {
-        'model': 'MyAKOrN',
+        'model': 'Control Resnet',
         'dataset': 'CIFAR-10',
         'final_test_accuracy': final_test_acc,
         'best_test_accuracy': best_acc,

@@ -35,15 +35,12 @@ import wandb
 import yaml, copy
 import itertools
 
-# Add source directory to path
-sys.path.append('source')
-
-from models.classification.my_knet import MyAKOrN, AKOrNResNet
+from source.models.classification.my_knet import MyAKOrN, AKOrNResNet
 from source.data.augs import augmentation_strong
 from source.my_training_utils import (
     set_seed, count_parameters, save_checkpoint_with_config, save_parameters
 )
-from utils import str2bool
+from source.utils import str2bool
 
 def get_config():
     """Get training configuration"""

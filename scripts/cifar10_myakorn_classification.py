@@ -36,26 +36,13 @@ import wandb
 import yaml, copy
 import itertools
 
-# Add source directory to path
-sys.path.append('source')
-
-from models.classification.my_knet import MyAKOrN
+from source.models.classification.my_knet import MyAKOrN, AKOrNResNet
 from source.data.augs import augmentation_strong
-from training_utils import save_checkpoint, save_model
-from utils import str2bool
-
-
-def set_seed(seed=42):
-    """Set random seeds for reproducibility"""
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-
+from source.my_training_utils import (
+    set_seed, count_parameters, save_checkpoint_with_config, save_parameters
+)
+from source.data.cifar10_utils import create_cifar10_dataloaders
+from source.utils import str2bool
 
 def get_config():
     """Get training configuration"""
@@ -104,47 +91,47 @@ def get_config():
     return config
 
 
-def create_data_loaders(config):
-    """Create train and test data loaders"""
-    # Data transforms
-    transform_train = augmentation_strong(imsize=32)
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-    ])
+# def create_data_loaders(config):
+#     """Create train and test data loaders"""
+#     # Data transforms
+#     transform_train = augmentation_strong(imsize=32)
+#     transform_test = transforms.Compose([
+#         transforms.ToTensor(),
+#     ])
 
-    # Load datasets
-    train_dataset = CIFAR10(
-        root='./data', 
-        train=True, 
-        download=True, 
-        transform=transform_train
-    )
+#     # Load datasets
+#     train_dataset = CIFAR10(
+#         root='./data', 
+#         train=True, 
+#         download=True, 
+#         transform=transform_train
+#     )
 
-    test_dataset = CIFAR10(
-        root='./data', 
-        train=False, 
-        download=True, 
-        transform=transform_test
-    )
+#     test_dataset = CIFAR10(
+#         root='./data', 
+#         train=False, 
+#         download=True, 
+#         transform=transform_test
+#     )
 
-    # Create data loaders
-    train_loader = DataLoader(
-        train_dataset, 
-        batch_size=config['batch_size'], 
-        shuffle=True, 
-        num_workers=config['num_workers'],
-        pin_memory=True
-    )
+#     # Create data loaders
+#     train_loader = DataLoader(
+#         train_dataset, 
+#         batch_size=config['batch_size'], 
+#         shuffle=True, 
+#         num_workers=config['num_workers'],
+#         pin_memory=True
+#     )
 
-    test_loader = DataLoader(
-        test_dataset, 
-        batch_size=config['batch_size'], 
-        shuffle=False, 
-        num_workers=config['num_workers'],
-        pin_memory=True
-    )
+#     test_loader = DataLoader(
+#         test_dataset, 
+#         batch_size=config['batch_size'], 
+#         shuffle=False, 
+#         num_workers=config['num_workers'],
+#         pin_memory=True
+#     )
 
-    return train_loader, test_loader
+#     return train_loader, test_loader
 
 
 def create_model(config, device):
@@ -259,26 +246,26 @@ def evaluate(model, test_loader, criterion, device):
     return test_loss, test_acc, class_accuracies
 
 
-def save_checkpoint_with_config(model, optimizer, scheduler, epoch, loss, config, filename):
-    """Save model checkpoint with configuration"""
-    checkpoint = {
-        'epoch': epoch,
-        'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
-        'scheduler_state_dict': scheduler.state_dict(), 
-        'loss': loss,
-        'config': config
-    }
-    torch.save(checkpoint, filename)
-    print(f"Checkpoint saved: {filename}")
+# def save_checkpoint_with_config(model, optimizer, scheduler, epoch, loss, config, filename):
+#     """Save model checkpoint with configuration"""
+#     checkpoint = {
+#         'epoch': epoch,
+#         'model_state_dict': model.state_dict(),
+#         'optimizer_state_dict': optimizer.state_dict(),
+#         'scheduler_state_dict': scheduler.state_dict(), 
+#         'loss': loss,
+#         'config': config
+#     }
+#     torch.save(checkpoint, filename)
+#     print(f"Checkpoint saved: {filename}")
 
 
-def save_parameters(config, save_dir):
-    """Save training parameters to JSON file"""
-    save_path = Path(save_dir) / 'parameters.json'
-    with open(save_path, 'w') as f:
-        json.dump(config, f, indent=2)
-    print(f"Parameters saved to: {save_path}")
+# def save_parameters(config, save_dir):
+#     """Save training parameters to JSON file"""
+#     save_path = Path(save_dir) / 'parameters.json'
+#     with open(save_path, 'w') as f:
+#         json.dump(config, f, indent=2)
+#     print(f"Parameters saved to: {save_path}")
 
 
 def main():
@@ -312,7 +299,8 @@ def main():
     parser.add_argument('--global-omg', type=str2bool, default=True, help='Global omega parameter')
     parser.add_argument('--learn-omg', type=str2bool, default=True, help='Learn omega parameters')
     parser.add_argument('--ensemble', type=int, default=1, help='Ensemble size')
-    
+    parser.add_argument('--bp_steps', type=int, default=None, help='Steps of back propagations in each layer, can be None or an L-element list of the numbers to apply BP')
+        
     # Training arguments
     parser.add_argument('--epochs', type=int, default=100, help='Number of training epochs')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
@@ -330,7 +318,7 @@ def main():
     parser.add_argument('--save-dir', type=str, default=None, help='Directory to save results. Defaults to [experiment_name]_[timestamp]')
     parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint to resume training from')
     parser.add_argument('--wandb-id', type=str, default=None, help='WandB run ID to resume') # この行を追加
-
+    parser.add_argument("--run-name", type=str, default=None, help="If set, use this as wandb run name")
     parser.add_argument('--param-file', type=str, default=None,
                      help='YAML file listing hyper-param sets')
     parser.add_argument('--index', type=int, default=None,
@@ -386,6 +374,7 @@ def main():
         'global_omg': args.global_omg,
         'learn_omg': args.learn_omg,
         'ensemble': args.ensemble,
+        'bp_steps': args.bp_steps,
         'epochs': args.epochs,
         'lr': args.lr,
         'weight_decay': args.weight_decay,
@@ -421,8 +410,12 @@ def main():
         # 再開用のIDを設定
         resume_id = args.wandb_id if args.resume else None
 
-        run_name = f"{config['experiment_name']}_T{args.T}_gamma{args.gamma}"
-        #run_name = f"{config['experiment_name']}_{int(time.time())}"
+        job_id = os.environ.get("PBS_JOBID", "local")
+        if args.run_name is not None:
+            run_name = args.run_name.format(**vars(args), job_id=job_id)
+        else:
+            run_name = f"{config['experiment_name']}_job{job_id}"
+
         wandb.init(
             project=args.wandb_project,
             entity=args.wandb_entity,
@@ -439,7 +432,7 @@ def main():
     
     # Create data loaders
     print("\nCreating data loaders...")
-    train_loader, test_loader = create_data_loaders(config)
+    train_loader, test_loader = create_cifar10_dataloaders(config)#create_data_loaders(config)
     print(f"Training samples: {len(train_loader.dataset)}")
     print(f"Test samples: {len(test_loader.dataset)}")
     

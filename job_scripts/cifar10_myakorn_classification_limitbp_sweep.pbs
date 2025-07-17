@@ -1,0 +1,61 @@
+#!/bin/bash
+#PBS -q short-g
+#PBS -l select=1
+#PBS -l walltime=06:00:00
+#PBS -N sweep_my_akorn_cifar10_limbp
+#PBS -o logs/
+#PBS -e logs/
+#PBS -j oe
+#PBS -W group_list=gj26
+
+# #-tというオプションは使えないので外からfor loopでまわす
+
+module purge
+module load singularity
+
+# --- ログは $PBS_O_WORKDIR に出る ---
+cd $PBS_O_WORKDIR
+
+export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
+export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
+export WANDB_PROJECT=sweep_my_akorn_cifar10_limbp
+
+TODAY=$(date '+%Y%m%d')
+
+# --- 実行 ---
+singularity exec --nv \
+  --bind $(pwd):/workspace \
+  --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
+  ~/singularity/kamiya_miyabi.sif \
+  python scripts/cifar10_myakorn_classification.py \
+      --save-dir "results/${TODAY}_${PBS_JOBID}" \
+      --wandb-project sweep_my_akorn_cifar10_limbp  \
+      --experiment-name sweep_my_akorn_cifar10_limbp \
+      --run-name "{experiment_name}_T{T}_bplim{bp_steps}_J${PBS_JOBID}" \
+      --epochs 30 \
+      --batch-size 64 \
+      --lr 1e-4 \
+      --param-file configs/_0717_2025_sweep_grid_2.yaml \
+      --index ${INDEX} \
+      --save-dir "results/sweep_${TODAY}_${PBS_JOBID}_${INDEX}"
+
+STATUS=$?   # 0=正常, それ以外=異常
+
+# ---- Slack 通知 ----
+
+JOB_NAME=$PBS_JOB_NAME
+JOB_ID=$PBS_JOBID
+NODE_NAME=$(hostname)
+
+send_slack() {         # 小さなヘルパー関数
+  curl -s -X POST -H 'Content-type: application/json' \
+       --data "{\"text\":\"$1\"}" "$SLACK_WEBHOOK"
+}
+
+if [ "$STATUS" -eq 0 ]; then
+    MESSAGE="✅ *Job Finished Successfully*\n> Job Name: \`$JOB_NAME\`\n> Job ID: \`$JOB_ID\`\n> Node: \`$NODE_NAME\`"
+    send_slack "$MESSAGE"
+else
+    MESSAGE="❌ *Job Failed*\n> Job Name: \`$JOB_NAME\`\n> Job ID: \`$JOB_ID\`\n> Node: \`$NODE_NAME\`\n> Exit Code: \`$STATUS\`"
+    send_slack "$MESSAGE"
+fi
