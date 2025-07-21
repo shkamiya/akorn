@@ -25,6 +25,45 @@ try:
 except ImportError:
     HAS_UMAP = False
 
+
+# Basic utility functions for tensor reshaping
+def reshape_tensor_to_blocks(C_out, C_in, H, W, n, J):
+    """
+    Reshape connectivity tensor to extract 2x2 blocks.
+    
+    Args:
+        C_out: Number of output channels
+        C_in: Number of input channels
+        H: Height of the feature map
+        W: Width of the feature map
+        n: Block size (assumed to be 2 for 2x2 blocks)
+        J: Connectivity tensor of shape (C_out, C_in, H, W)
+        
+    Returns:
+        Reshaped tensor with shape (C_out//n, n, C_in//n, n, H, W)
+    """
+    return J.reshape(C_out//n, n, C_in//n, n, H, W).transpose(0, 2, 4, 5, 1, 3).reshape(-1, n, n)
+
+def reshape_blocks_to_tensor(blocks, n, C_out, C_in, H, W):
+    """
+    Reshape 2x2 blocks back to connectivity tensor.
+    
+    Args:
+        blocks: Blocks of shape (num_blocks, 2, 2)
+        n: Block size (assumed to be 2 for 2x2 blocks)
+        
+    Returns:
+        Reshaped tensor with shape (C_out, C_in, H, W)
+    """
+    num_blocks = blocks.shape[0]
+    if num_blocks != (C_out // n) * (C_in // n) * H * W:
+        raise ValueError("Number of blocks not compatible with C_out, C_in, H, and W.")
+    if blocks.shape[1:] != (n, n):
+        raise ValueError("Blocks must have shape (num_blocks, n, n).")
+
+    return blocks.reshape(C_out//n, C_in//n, H, W, n,n).transpose(0, 4, 1, 5, 2, 3).reshape(C_out, C_in, H, W)
+
+
 class AKOrNStaticAnalyzer:
     """
     A comprehensive analyzer for MyAKOrN model connectivity patterns.

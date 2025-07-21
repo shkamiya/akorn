@@ -4,6 +4,7 @@
 /data/
 /logs/
 /wandb/
+/notebooks/data/
 
 # egg info that appears when pip install -e .
 *.egg-info
