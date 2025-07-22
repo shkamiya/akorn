@@ -4,7 +4,7 @@
 #PJM -L rscgrp=regular-a
 #PJM -L node=1
 #PJM -L elapse=08:00:00
-#PJM -N akorn_resnet_slim_cifar10_L1T0
+#PJM -N roonly_akorn_resnet_slim_cifar10
 #PJM -o logs/%n.%j.out
 #PJM -e logs/%n.%j.err
 #PJM -j
@@ -21,7 +21,7 @@ export PBS_JOBID=$PJM_JOBID
 # --- 任意の環境変数 -------------------------------------------------
 export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
-export WANDB_PROJECT=akorn_resnet_slim_cifar10_L1T0
+export WANDB_PROJECT=roonly_akorn_resnet_slim_cifar10
 TODAY=$(date '+%Y%m%d')
 # ------------------------------------------------------------------
 
@@ -30,13 +30,13 @@ singularity exec --nv                         \
   --bind "$(pwd)":/workspace                  \
   --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
   ~/singularity/akorn_wisteria.sif             \
-  python scripts/cifar10_control_roonly_akorn_resnet_classification.py \
+  python scripts/cifar10_akorn_resnet_classification.py \
       --save-dir "results/${TODAY}_${PJM_JOBID}"       \
       --wandb-project "${WANDB_PROJECT}"               \
       --epochs 30                                      \
       --batch-size 64                                  \
-      --lr 1e-4 \
-      --n 2 --ch 128 --L 1 --T 0
+      --lr 5e-4 \
+      --n 2 --ch 128 --ro-only True
 
 STATUS=$?   # 0=正常終了
 

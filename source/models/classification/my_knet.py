@@ -59,6 +59,7 @@ class MyAKOrN(nn.Module):
         learn_omg=True,
         ensemble=1,
         bp_steps=None,
+        ro_only=False,
     ):
         super().__init__()
         
@@ -72,6 +73,8 @@ class MyAKOrN(nn.Module):
         self.ns = self._expand_param(n, L)
         self.T = self._expand_param(T, L)
         self.bp_steps = self._expand_param(bp_steps,L)
+        self.ro_only = self._expand_param(ro_only, L)
+
         J = self._expand_param(J, L)
         ksizes = self._expand_param(ksizes, L)
         ro_N = self._expand_param(ro_N, L)
@@ -152,21 +155,24 @@ class MyAKOrN(nn.Module):
                 )
                 transition_layers = nn.ModuleList([conv_layer, conv_layer])
             
-            # Create K-layer
-            k_layer = KLayer(
-                n=self.ns[l],
-                ch=channels[l],
-                J=J[l],
-                J_bias=J_bias,          # Turned off bias in J! by SK, Jul 4 2025
-                c_norm=c_norm,
-                use_omega=use_omega,
-                init_omg=init_omg,
-                global_omg=global_omg,
-                learn_omg=learn_omg,
-                ksize=ksizes[l],
-                hw=hw_sizes[l],
-                bp_steps=self.bp_steps[l],
-            )
+            if self.ro_only[l]:
+                k_layer = nn.Identity()  # No K-layer for readout-only
+            else: 
+                # Create K-layer
+                k_layer = KLayer(
+                    n=self.ns[l],
+                    ch=channels[l],
+                    J=J[l],
+                    J_bias=J_bias,          # Turned off bias in J! by SK, Jul 4 2025
+                    c_norm=c_norm,
+                    use_omega=use_omega,
+                    init_omg=init_omg,
+                    global_omg=global_omg,
+                    learn_omg=learn_omg,
+                    ksize=ksizes[l],
+                    hw=hw_sizes[l],
+                    bp_steps=self.bp_steps[l],
+                )
             
             # Create readout block
             readout_block = self._create_readout_block(channels[l], ro_N[l], ro_ksize, norm)
@@ -181,26 +187,6 @@ class MyAKOrN(nn.Module):
         
         return layers
     
-    def feature_new(self, inp, train_last=None):
-        """Extract features from input through the network layers."""
-        # Initial processing
-        c = self.conv0(self.rgb_normalize(inp))
-        x = torch.randn_like(c)
-        xs, es = [], []
-
-        # Process through each layer
-        for l, (transition_layer, _, k_layer, readout_layer, _) in enumerate(self.layers):
-            x, c = transition_layer[0](x), transition_layer[1](c)
-            layer_xs, layer_es = k_layer(x, c, self.T[l], self.gamma)
-            xs.append(layer_xs)
-            es.append(layer_es)
-            x = layer_xs[-1]
-            c = readout_layer(x)
-            
-        # Final pooling
-        x, c = map(self.pool, (x, c))
-        return c, x, xs, es
-
     def feature(self, inp):
         """Extract features from input through the network layers."""
         # Initial processing
@@ -211,11 +197,17 @@ class MyAKOrN(nn.Module):
         # Process through each layer
         for l, (transition_layer, _, k_layer, readout_layer, _) in enumerate(self.layers):
             x, c = transition_layer[0](x), transition_layer[1](c)
-            layer_xs, layer_es = k_layer(x, c, self.T[l], self.gamma)
-            xs.append(layer_xs)
-            es.append(layer_es)
-            x = layer_xs[-1]
-            c = readout_layer(x)
+            if self.ro_only[l] == False:
+                layer_xs, layer_es = k_layer(x, c, self.T[l], self.gamma)
+                xs.append(layer_xs)
+                es.append(layer_es)
+                x = layer_xs[-1]
+                c = readout_layer(x)
+            else:
+                # Readout-only layer, no K-layer processing
+                xs.append([x])
+                es.append([torch.zeros_like(x)])
+                c = readout_layer(c) # x is a random sampled matrix, thus use c instead
             
         # Final pooling
         x, c = map(self.pool, (x, c))
@@ -272,6 +264,7 @@ class AKOrNResNet(nn.Module):
             out_classes=10,
             transform_to_theta=False,
             bp_steps=3,
+            ro_only=False,
             ):
         
         super().__init__()
@@ -289,6 +282,7 @@ class AKOrNResNet(nn.Module):
             learn_omg=True,
             out_classes=out_classes,
             bp_steps=bp_steps,
+            ro_only=ro_only,
         )
         self.n  = n
         self.ch = ch

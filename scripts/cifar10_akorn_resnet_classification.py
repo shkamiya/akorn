@@ -70,7 +70,8 @@ def get_config():
         'learn_omg': True,   # Learn omega parameters
         'ensemble': 1,       # Ensemble size
         'bp_steps': None,    # Steps to apply BP for each layer
-        
+        'ro_only': False,    # Whether to use readout-only layers
+
         # Training
         'epochs': 100,
         'lr': 1e-4,
@@ -145,6 +146,7 @@ def create_model(config, device):
         ksizes=config['ksizes'],
         gamma=config['gamma'],
         bp_steps=config['bp_steps'],
+        ro_only=config['ro_only'],
     ).to(device)
     
     return model
@@ -267,6 +269,7 @@ def main():
     parser.add_argument('--learn-omg', type=str2bool, default=True, help='Learn omega parameters')
     parser.add_argument('--ensemble', type=int, default=1, help='Ensemble size')
     parser.add_argument('--bp_steps', type=int, default=None, help='Steps of back propagations in each layer, can be None or an L-element list of the numbers to apply BP')
+    parser.add_argument('--ro-only', type=str2bool, default=False, help='Whether to use readout-only layers')
     
     # Training arguments
     parser.add_argument('--epochs', type=int, default=100, help='Number of training epochs')
@@ -342,6 +345,7 @@ def main():
         'learn_omg': args.learn_omg,
         'ensemble': args.ensemble,
         'bp_steps': args.bp_steps,
+        'ro_only': args.ro_only,
         'epochs': args.epochs,
         'lr': args.lr,
         'weight_decay': args.weight_decay,
