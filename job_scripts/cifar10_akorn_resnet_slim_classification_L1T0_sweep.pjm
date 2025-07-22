@@ -34,7 +34,10 @@ singularity exec --nv                         \
       --wandb-project "${WANDB_PROJECT}"               \
       --epochs 30                                      \
       --batch-size 64                                  \
-      "$@"                                            # ← arg_list.txt を使うならここを調整
+      --lr 1e-4 \
+      --param-file configs/_0722_2025_sweep_L1T0.yaml \
+      --index ${INDEX} \
+      --save-dir "results/sweep_${TODAY}_${PBS_JOBID}_${INDEX}"
 
 STATUS=$?   # 0=正常終了
 
