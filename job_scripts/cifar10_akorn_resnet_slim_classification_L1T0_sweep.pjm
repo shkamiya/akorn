@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==== PJM オプション =========================================
-#PJM -g gj26
+#PJM -g gb20
 #PJM -L rscgrp=regular-a
 #PJM -L node=1
 #PJM -L elapse=08:00:00
@@ -28,7 +28,7 @@ TODAY=$(date '+%Y%m%d')
 singularity exec --nv                         \
   --bind "$(pwd)":/workspace                  \
   --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
-  ~/singularity/kamiya_miyabi.sif             \
+  ~/singularity/akorn_wisteria.sif             \
   python scripts/cifar10_akorn_resnet_classification.py \
       --save-dir "results/${TODAY}_${PJM_JOBID}"       \
       --wandb-project "${WANDB_PROJECT}"               \
