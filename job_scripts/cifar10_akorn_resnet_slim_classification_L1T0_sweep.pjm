@@ -29,7 +29,7 @@ singularity exec --nv                         \
   --bind "$(pwd)":/workspace                  \
   --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
   ~/singularity/akorn_wisteria.sif             \
-  python scripts/cifar10_akorn_resnet_classification.py \
+  python scripts/cifar10_control_noakorn_resnet_classification.py \
       --save-dir "results/${TODAY}_${PJM_JOBID}"       \
       --wandb-project "${WANDB_PROJECT}"               \
       --epochs 30                                      \

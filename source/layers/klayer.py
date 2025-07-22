@@ -276,4 +276,59 @@ class KuramotoSakaguchiConv2d(nn.Module):
         return nn.functional.conv2d(x, w, bias=self.bias,
                         stride=self.stride,
                         padding=self.padding)
+
+
+class ReadoutOnlyKLayer(nn.Module):
+    """
+    Control version of KLayer that skips AKOrN iterations but keeps the structure for readout.
+    This bypasses the Kuramoto oscillator dynamics (T iterations) but maintains the same
+    input/output interface as the original KLayer.
+    """
     
+    def __init__(
+        self,
+        n,
+        ch,
+        c_norm="gn",
+    ):
+        super().__init__()
+        assert (ch % n) == 0
+        self.n = n
+        self.ch = ch
+        
+        # Keep the same normalization as original for readout compatibility
+        if c_norm == "gn":
+            self.c_norm = nn.GroupNorm(ch // n, ch, affine=True)
+        elif c_norm == "sandb":
+            from source.layers.common_layers import ScaleAndBias
+            self.c_norm = ScaleAndBias(ch, token_input=False)
+        elif c_norm is None or c_norm == "none":
+            self.c_norm = nn.Identity()
+        else:
+            raise NotImplementedError
+            
+        # Simple linear transformation to replace Kuramoto dynamics
+        # This maintains the same input/output dimensions but removes oscillator iterations
+        self.control_transform = nn.Conv2d(ch, ch, 1, 1, 0, bias=False)
+
+    def forward(self, x: torch.Tensor, c: torch.Tensor):
+        """
+        Control forward pass: Skip AKOrN iterations, apply simple transformation.
+        
+        Returns the same structure as KLayer (xs, es) but without oscillator dynamics:
+        - xs: List of states (here just the transformed input repeated T times)
+        - es: List of energies (here just zeros)
+        """
+        xs, es = [], []
+        c = self.c_norm(c)
+        
+        # Apply control transformation instead of Kuramoto iterations
+        x_transformed = self.control_transform(x)
+        
+        # Return the same structure as original KLayer
+        # Repeat the transformed state T times to match expected output structure
+        # for t in range(T):
+        xs.append(x_transformed)
+        es.append(torch.zeros(x_transformed.shape[0]).to(x_transformed.device))
+            
+        return xs, es
