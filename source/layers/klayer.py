@@ -15,6 +15,10 @@ from source.layers.kutils import (
     normalize,
 )
 
+from source.models.classification.analysis_utils import (
+    reshape_blocks_to_tensor, reshape_tensor_to_blocks
+)
+
 from einops.layers.torch import Rearrange
 
 
@@ -65,9 +69,9 @@ class KLayer(nn.Module):  # Kuramoto layer
         n,
         ch,
         J="conv",
-        J_bias=True,      # added by SK on Jul 4, 2025
+        J_bias=False,      # added by SK on Jul 4, 2025
         c_norm="gn",
-        use_omega=False,
+        use_omega=True,
         init_omg=1.0,
         ksize=3,
         gta=False,
@@ -99,6 +103,8 @@ class KLayer(nn.Module):  # Kuramoto layer
             self.x_type = "image"
         elif J == "conv_repeated_const":    # Added by SK on Jul 4 2025
             self.connectivity = RepeatedConv2d(n, ch, ch, ksize, 1, ksize//2, bias=J_bias)
+        elif J == "conv_kuramoto_sakaguchi":  # Added by SK on Jul 21 2025
+            self.connectivity = KuramotoSakaguchiConv2d(n, ch, ch, ksize, 1, ksize//2, bias=J_bias)
         elif J == "attn":
             self.connectivity = Attention(
                 ch,
@@ -220,3 +226,54 @@ class RepeatedConv2d(nn.Module):
         return nn.functional.conv2d(x, w, bias=self.bias,
                         stride=self.stride,
                         padding=self.padding)
+    
+
+class KuramotoSakaguchiConv2d(nn.Module):
+    """
+    Kuramoto-Sakaguchi 形式の畳み込み層。
+    conv.weight[o, i, h, w] は
+        J[o%2, i%2]   (同じ値を H,W 方向にコピー)
+    となる畳み込み層。そして各J_{ij}は
+        J_{ij} = c_{ij} [[ cos(alpha_{ij}), sin(alpha_{ij}) ], [-sin(alpha_{ij}), cos(alpha_{ij}) ]]
+    となる！
+    """
+
+    def __init__(self, n=2, ch_in=128, ch_out=128, ksize=9, stride=1, padding=None, bias=False):
+        super().__init__()
+        assert ch_in % n == 0 and ch_out % n == 0, "チャネル数は 2 の倍数に"
+        self.n = n
+        self.ch_in  = ch_in
+        self.ch_out = ch_out
+        self.ksize  = ksize
+        self.stride = stride
+        self.padding = ksize // 2 if padding is None else padding
+        
+        if bias:
+            self.bias = nn.Parameter(torch.zeros(ch_out))
+        else:
+            self.register_parameter("bias", None)
+
+        #　各J_{ij}は[[a, b], [-b, a]] という形で表現される
+        self.J_00 = nn.Parameter(torch.randn(ch_out//n * ch_in//n * ksize * ksize, ) * 0.01)
+        self.J_01 = nn.Parameter(torch.randn(ch_out//n * ch_in//n * ksize * ksize, ) * 0.01)
+
+
+    def _build_weight(self):
+        """
+        (:,:,h,w) は 2x2行列で
+        J_{ij} = c_{ij} [[ cos(alpha_{ij}), sin(alpha_{ij}) ], [-sin(alpha_{ij}), cos(alpha_{ij}) ]]
+        となる
+        """
+        J_blocks = torch.stack([
+            torch.stack([ self.J_00, self.J_01], dim=1),  # J_{00}, J_{01}
+            torch.stack([-self.J_01, self.J_00], dim=1)   # J_{10}, J_{11}
+        ], dim=2)
+        w = reshape_blocks_to_tensor(J_blocks, self.n, self.ch_out, self.ch_in, self.ksize, self.ksize)
+        return w
+
+    def forward(self, x):
+        w = self._build_weight()
+        return nn.functional.conv2d(x, w, bias=self.bias,
+                        stride=self.stride,
+                        padding=self.padding)
+    

@@ -1,0 +1,12 @@
+# parameter sweep using cifar10_myakorn_classification.py
+grid:
+  n:        [2]
+  ch:       [128]
+  L:        [3]
+  T:        [[3,3,3],[7,3,3],[31,3,3],[63, 3,3],[127,3,3], [255,3,3]]
+  gamma:    [0.01]
+  ksizes:   [[3,7,5]]
+  J_bias:   [false]
+  global_omg: [false]
+  bp_steps  : [[1,3,3]]
+  J:        ['conv_kuramoto_sakaguchi']  # Added by SK

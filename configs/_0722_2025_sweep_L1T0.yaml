@@ -1,0 +1,6 @@
+# parameter sweep using cifar10_akorn_resnet_classification.py
+grid:
+  n:        [2]
+  ch:       [128]
+  L:        [1]
+  T:        [0] 

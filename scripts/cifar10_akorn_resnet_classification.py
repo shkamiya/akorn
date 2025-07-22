@@ -139,6 +139,7 @@ def create_model(config, device):
         n=config['n'],
         ch=config['ch'],
         out_classes=config['num_classes'],
+        J=config['J'],
         L=config['L'],
         T=config['T'],
         ksizes=config['ksizes'],
@@ -604,7 +605,7 @@ def main():
     
     # Save final results summary
     results_summary = {
-        'model': 'MyAKOrN',
+        'model': 'AKOrN+Resnet',
         'dataset': 'CIFAR-10',
         'final_test_accuracy': final_test_acc,
         'best_test_accuracy': best_acc,

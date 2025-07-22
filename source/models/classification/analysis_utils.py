@@ -27,22 +27,32 @@ except ImportError:
 
 
 # Basic utility functions for tensor reshaping
-def reshape_tensor_to_blocks(C_out, C_in, H, W, n, J):
+def reshape_tensor_to_blocks(J, n):
     """
     Reshape connectivity tensor to extract 2x2 blocks.
     
     Args:
+        J: Connectivity tensor of shape (C_out, C_in, H, W)
+        n: Block size (assumed to be 2 for 2x2 blocks)
+    Possible args:
         C_out: Number of output channels
         C_in: Number of input channels
         H: Height of the feature map
-        W: Width of the feature map
-        n: Block size (assumed to be 2 for 2x2 blocks)
-        J: Connectivity tensor of shape (C_out, C_in, H, W)
-        
+        W: Width of the feature map        
     Returns:
         Reshaped tensor with shape (C_out//n, n, C_in//n, n, H, W)
     """
-    return J.reshape(C_out//n, n, C_in//n, n, H, W).transpose(0, 2, 4, 5, 1, 3).reshape(-1, n, n)
+    C_out, C_in, H, W = J.shape
+
+    if isinstance(J, torch.Tensor):
+        # PyTorchの場合: .permute() を使用
+        permuted = J.reshape(C_out//n, n, C_in//n, n, H, W).permute(0, 2, 4, 5, 1, 3)
+        # メモリを連続化してからreshapeするのが安全
+        return permuted.contiguous().reshape(-1, n, n)
+    else:
+        # NumPyの場合: .transpose() を使用
+        permuted = J.reshape(C_out//n, n, C_in//n, n, H, W).transpose(0, 2, 4, 5, 1, 3)
+        return permuted.reshape(-1, n, n)
 
 def reshape_blocks_to_tensor(blocks, n, C_out, C_in, H, W):
     """
@@ -58,11 +68,17 @@ def reshape_blocks_to_tensor(blocks, n, C_out, C_in, H, W):
     num_blocks = blocks.shape[0]
     if num_blocks != (C_out // n) * (C_in // n) * H * W:
         raise ValueError("Number of blocks not compatible with C_out, C_in, H, and W.")
-    if blocks.shape[1:] != (n, n):
-        raise ValueError("Blocks must have shape (num_blocks, n, n).")
-
-    return blocks.reshape(C_out//n, C_in//n, H, W, n,n).transpose(0, 4, 1, 5, 2, 3).reshape(C_out, C_in, H, W)
-
+    
+    # 型を判定して適切なメソッドを呼び出す
+    if isinstance(blocks, torch.Tensor):
+        # PyTorchの場合: .permute() を使用
+        permuted = blocks.reshape(C_out//n, C_in//n, H, W, n, n).permute(0, 4, 1, 5, 2, 3)
+        # メモリを連続化してから最終的な形に変形
+        return permuted.contiguous().reshape(C_out, C_in, H, W)
+    else:
+        # NumPyの場合: .transpose() を使用
+        permuted = blocks.reshape(C_out//n, C_in//n, H, W, n, n).transpose(0, 4, 1, 5, 2, 3)
+        return permuted.reshape(C_out, C_in, H, W)
 
 class AKOrNStaticAnalyzer:
     """

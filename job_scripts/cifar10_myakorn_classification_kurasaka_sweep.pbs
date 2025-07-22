@@ -1,12 +1,14 @@
 #!/bin/bash
-#PBS -q regular-g
+#PBS -q short-g
 #PBS -l select=1
-#PBS -l walltime=08:00:00
-#PBS -N sweep_akorn_resnet_slim_cifar10_ver3
+#PBS -l walltime=06:00:00
+#PBS -N sweep_my_akorn_cifar10_kurasaka
 #PBS -o logs/
 #PBS -e logs/
 #PBS -j oe
 #PBS -W group_list=gj26
+
+# #-tというオプションは使えないので外からfor loopでまわす
 
 module purge
 module load singularity
@@ -16,7 +18,7 @@ cd $PBS_O_WORKDIR
 
 export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
-export WANDB_PROJECT=sweep_akorn_resnet_slim_cifar10_ver3
+export WANDB_PROJECT=sweep_my_akorn_cifar10_kurasaka
 
 TODAY=$(date '+%Y%m%d')
 
@@ -25,18 +27,17 @@ singularity exec --nv \
   --bind $(pwd):/workspace \
   --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
   ~/singularity/kamiya_miyabi.sif \
-  python scripts/cifar10_akorn_resnet_classification.py \
+  python scripts/cifar10_myakorn_classification.py \
       --save-dir "results/${TODAY}_${PBS_JOBID}" \
-      --wandb-project sweep_akorn_resnet_slim_cifar10_ver3  \
-      --experiment-name sweep_akorn_resnet_slim_cifar10_ver3 \
-      --run-name "{experiment_name}_T{T}_k{ksizes}_bplim{bp_steps}_J${PBS_JOBID}" \
+      --wandb-project sweep_my_akorn_cifar10_kurasaka  \
+      --experiment-name sweep_my_akorn_cifar10_kurasaka \
+      --run-name "{experiment_name}_T{T}_bplim{bp_steps}_J${PBS_JOBID}" \
       --epochs 30 \
       --batch-size 64 \
       --lr 1e-4 \
-      --param-file configs/_0718_2025_sweep_grid_2.yaml \
+      --param-file configs/_0721_2025_sweep_kurasaka.yaml \
       --index ${INDEX} \
       --save-dir "results/sweep_${TODAY}_${PBS_JOBID}_${INDEX}"
-# --param-file configs/_0717_2025_sweep_grid.yaml \
 
 STATUS=$?   # 0=正常, それ以外=異常
 

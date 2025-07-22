@@ -265,6 +265,7 @@ class AKOrNResNet(nn.Module):
             n=2,
             ch=128,
             T=15,
+            J="conv",
             gamma=0.01,
             ksizes=3,
             L=1,
@@ -278,6 +279,7 @@ class AKOrNResNet(nn.Module):
             n=n,
             ch=ch,
             L=L,
+            J=J,
             T=T,
             ksizes=ksizes,
             gamma=gamma,
@@ -291,6 +293,7 @@ class AKOrNResNet(nn.Module):
         self.n  = n
         self.ch = ch
         self.transform_to_theta = transform_to_theta
+        # J = self._expand_param(J, L)
         
         # For debugging
         self.c, self.x, self.xs, self.es = None, None, None, None
