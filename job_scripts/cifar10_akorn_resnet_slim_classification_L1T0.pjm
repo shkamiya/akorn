@@ -4,9 +4,9 @@
 #PJM -L rscgrp=regular-a
 #PJM -L node=1
 #PJM -L elapse=08:00:00
-#PJM -N sweep_akorn_resnet_slim_cifar10_L1T0
-#PJM -o logs/
-#PJM -e logs/
+#PJM -N akorn_resnet_slim_cifar10_L1T0
+#PJM -o logs/%n.%j.out
+#PJM -e logs/%n.%j.err
 #PJM -j
 #PJM -L jobenv=singularity
 # =============================================================
@@ -14,13 +14,14 @@
 module purge
 module load singularity
 
-# submit したディレクトリに移動（PJM_O_WORKDIR が無い場合は PWD でフォールバック）
-cd "${PJM_O_WORKDIR:-$PWD}"
+# cd "${PJM_O_WORKDIR:-$PWD}"
+cd /work/gb20/b20109/akorn
+export PBS_JOBID=$PJM_JOBID
 
 # --- 任意の環境変数 -------------------------------------------------
 export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
-export WANDB_PROJECT=sweep_akorn_resnet_slim_cifar10_L1T0
+export WANDB_PROJECT=akorn_resnet_slim_cifar10_L1T0
 TODAY=$(date '+%Y%m%d')
 # ------------------------------------------------------------------
 
@@ -35,9 +36,7 @@ singularity exec --nv                         \
       --epochs 30                                      \
       --batch-size 64                                  \
       --lr 1e-4 \
-      --param-file configs/_0722_2025_sweep_L1T0.yaml \
-      --index ${INDEX:-${PJM_BULKNO}} \
-      --save-dir "results/sweep_${TODAY}_${PBS_JOBID}_${INDEX}"
+      --n 2 --ch 128 --L 1 --T 0
 
 STATUS=$?   # 0=正常終了
 
