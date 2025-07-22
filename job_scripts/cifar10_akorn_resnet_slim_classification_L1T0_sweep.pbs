@@ -25,7 +25,7 @@ singularity exec --nv \
   --bind $(pwd):/workspace \
   --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
   ~/singularity/kamiya_miyabi.sif \
-  python scripts/cifar10_akorn_resnet_classification.py \
+  python scripts/cifar10_control_roonly_akorn_resnet_classification.py \
       --save-dir "results/${TODAY}_${PBS_JOBID}" \
       --wandb-project sweep_akorn_resnet_slim_cifar10_L1T0  \
       --experiment-name sweep_akorn_resnet_slim_cifar10_L1T0 \

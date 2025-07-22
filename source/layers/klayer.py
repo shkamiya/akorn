@@ -311,7 +311,7 @@ class ReadoutOnlyKLayer(nn.Module):
         # This maintains the same input/output dimensions but removes oscillator iterations
         self.control_transform = nn.Conv2d(ch, ch, 1, 1, 0, bias=False)
 
-    def forward(self, x: torch.Tensor, c: torch.Tensor):
+    def forward(self, x: torch.Tensor, c: torch.Tensor, T: int, gamma):
         """
         Control forward pass: Skip AKOrN iterations, apply simple transformation.
         

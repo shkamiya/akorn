@@ -6,6 +6,10 @@ This script is a control version of cifar10_akorn_resnet_classification.py that 
 but keeps the AKOrN readout structure for fair comparison. The Kuramoto oscillator dynamics (T iterations)
 are bypassed, but the readout processing is preserved.
 
+Two implementation approaches are provided:
+1. Standalone version (default): Complete reimplementation of control classes
+2. Inheritance version (--use-inherited): Inherits from original classes and overrides only necessary methods
+
 References:
 - Miyato et al., "Artificial Kuramoto Oscillatory Neurons", ICLR 2025
 """
@@ -316,6 +320,127 @@ class ControlMyAKOrN(nn.Module):
             return torch.stack(logits_list).mean(0)
 
 
+class ControlMyAKOrNInherited(MyAKOrN):
+    """
+    Alternative control version of MyAKOrN that inherits from the original MyAKOrN class.
+    This approach overrides only the layer creation method to use ControlKLayer instead of KLayer,
+    making the code more maintainable and ensuring compatibility with the base class.
+    """
+    
+    def __init__(self, *args, **kwargs):
+        # Initialize the parent class normally
+        super().__init__(*args, **kwargs)
+        
+    def _create_layers(self, L, channels, strides, hw_sizes, J, J_bias, ksizes, ro_N, ro_ksize, norm, c_norm, use_omega, init_omg, global_omg, learn_omg):
+        """
+        Override the layer creation method to use ControlKLayer instead of KLayer.
+        This is the only method that needs to be changed to create the control version.
+        """
+        layers = nn.ModuleList()
+        padding = ro_ksize // 2
+        
+        for l in range(L):
+            # Create transition layers (same as parent)
+            if l == 0:
+                transition_layers = nn.ModuleList([nn.Identity(), nn.Identity()])
+            else:
+                conv_layer = self._create_strided_conv(
+                    channels[l-1], channels[l], strides[l], ro_ksize, padding
+                )
+                transition_layers = nn.ModuleList([conv_layer, conv_layer])
+            
+            # Create Control K-layer (NO AKORN ITERATIONS) - this is the key difference
+            control_k_layer = ControlKLayer(
+                n=self.ns[l],
+                ch=channels[l],
+                J=J[l],
+                J_bias=J_bias,
+                c_norm=c_norm,
+                use_omega=use_omega,
+                init_omg=init_omg,
+                global_omg=global_omg,
+                learn_omg=learn_omg,
+                ksize=ksizes[l],
+                hw=hw_sizes[l],
+                bp_steps=self.bp_steps[l],
+            )
+            
+            # Create readout block (same as parent - PRESERVED)
+            readout_block = self._create_readout_block(channels[l], ro_N[l], ro_ksize, norm)
+            
+            layers.append(nn.ModuleList([
+                transition_layers,
+                nn.Identity(),
+                control_k_layer,  # Using ControlKLayer instead of KLayer
+                readout_block,
+                nn.Identity()
+            ]))
+        
+        return layers
+
+
+class ControlAKOrNResNetInherited(AKOrNResNet):
+    """
+    Alternative control version of AKOrNResNet that inherits from the original AKOrNResNet class.
+    This uses ControlMyAKOrNInherited instead of ControlMyAKOrN for cleaner inheritance.
+    """
+    
+    def __init__(self, *args, **kwargs):
+        # We need to intercept the initialization to use ControlMyAKOrNInherited
+        # Store the arguments that will be passed to MyAKOrN
+        akorn_args = {
+            'n': kwargs.get('n', 2),
+            'ch': kwargs.get('ch', 128), 
+            'L': kwargs.get('L', 1),
+            'J': kwargs.get('J', 'conv'),
+            'T': kwargs.get('T', 15),
+            'ksizes': kwargs.get('ksizes', 3),
+            'gamma': kwargs.get('gamma', 0.01),
+            'use_omega': True,
+            'init_omg': 1.0,
+            'global_omg': False,
+            'learn_omg': True,
+            'out_classes': kwargs.get('out_classes', 10),
+            'bp_steps': kwargs.get('bp_steps', 3),
+        }
+        
+        # Initialize as if we're AKOrNResNet, but we'll replace kur1 afterwards
+        super(AKOrNResNet, self).__init__()  # Skip AKOrNResNet.__init__
+        
+        # Now manually initialize like AKOrNResNet but with our control version
+        self.kur1 = ControlMyAKOrNInherited(**akorn_args)  # Use inherited control version
+        
+        self.n = akorn_args['n']
+        self.ch = akorn_args['ch']
+        self.transform_to_theta = kwargs.get('transform_to_theta', False)
+        
+        # For debugging
+        self.c, self.x, self.xs, self.es = None, None, None, None
+        
+        def make_layer(in_ch, out_ch, blocks, stride):
+            downsample = None
+            if stride != 1 or in_ch != out_ch:
+                downsample = nn.Sequential(
+                    nn.Conv2d(in_ch, out_ch, kernel_size=1, stride=stride, bias=False),
+                    nn.BatchNorm2d(out_ch),
+                )
+            layers = [BasicBlock(in_ch, out_ch, stride, downsample)]
+            for _ in range(1, blocks):
+                layers.append(BasicBlock(out_ch, out_ch))
+            return nn.Sequential(*layers)
+
+        if self.transform_to_theta and self.n == 2:
+            dim = self.ch // self.n
+        else:
+            dim = self.ch
+
+        # ResNet layers - same as parent
+        self.layer1 = make_layer(dim, 2*dim, 2, 2)
+        self.layer2 = make_layer(2*dim, 4*dim, 2, 2)
+        self.pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Linear(4*dim, akorn_args['out_classes'])
+
+
 class ControlAKOrNResNet(nn.Module):
     """
     Control version of AKOrNResNet that uses ControlMyAKOrN instead of MyAKOrN.
@@ -497,19 +622,39 @@ def create_data_loaders(config):
     return train_loader, test_loader
 
 
-def create_model(config, device):
-    """Create Control AKOrNResNet model (no AKOrN iterations)"""
-    model = ControlAKOrNResNet(  # Using ControlAKOrNResNet
-        n=config['n'],
-        ch=config['ch'],
-        out_classes=config['num_classes'],
-        J=config['J'],
-        L=config['L'],
-        T=config['T'],  # This parameter has no effect in control version
-        ksizes=config['ksizes'],
-        gamma=config['gamma'],  # This parameter has no effect in control version
-        bp_steps=config['bp_steps'],  # This parameter has no effect in control version
-    ).to(device)
+def create_model(config, device, use_inherited=False):
+    """Create Control AKOrNResNet model (no AKOrN iterations)
+    
+    Args:
+        config: Configuration dictionary
+        device: PyTorch device
+        use_inherited: If True, use ControlAKOrNResNetInherited (inheritance-based version)
+                      If False, use ControlAKOrNResNet (standalone version)
+    """
+    if use_inherited:
+        model = ControlAKOrNResNetInherited(  # Using inheritance-based version
+            n=config['n'],
+            ch=config['ch'],
+            out_classes=config['num_classes'],
+            J=config['J'],
+            L=config['L'],
+            T=config['T'],  # This parameter has no effect in control version
+            ksizes=config['ksizes'],
+            gamma=config['gamma'],  # This parameter has no effect in control version
+            bp_steps=config['bp_steps'],  # This parameter has no effect in control version
+        ).to(device)
+    else:
+        model = ControlAKOrNResNet(  # Using standalone version
+            n=config['n'],
+            ch=config['ch'],
+            out_classes=config['num_classes'],
+            J=config['J'],
+            L=config['L'],
+            T=config['T'],  # This parameter has no effect in control version
+            ksizes=config['ksizes'],
+            gamma=config['gamma'],  # This parameter has no effect in control version
+            bp_steps=config['bp_steps'],  # This parameter has no effect in control version
+        ).to(device)
     
     return model
 
@@ -654,6 +799,8 @@ def main():
                      help='YAML file listing hyper-param sets')
     parser.add_argument('--index', type=int, default=None,
                         help='Which entry of YAML to load (0-based)')
+    parser.add_argument('--use-inherited', action='store_true', default=False,
+                        help='Use inheritance-based control model (ControlMyAKOrNInherited) instead of standalone version')
 
     
     args = parser.parse_args()
@@ -760,8 +907,9 @@ def main():
     print(f"Test samples: {len(test_loader.dataset)}")
     
     # Create model
-    print("\\nCreating control model...")
-    model = create_model(config, device)
+    model_type = "inheritance-based" if args.use_inherited else "standalone"
+    print(f"\\nCreating control model ({model_type} version)...")
+    model = create_model(config, device, use_inherited=args.use_inherited)
     
     # Count parameters
     total_params = sum(p.numel() for p in model.parameters())
@@ -953,8 +1101,9 @@ def main():
     print(f"Training history saved to: {history_path}")
     
     # Save final results summary
+    model_version = "inheritance-based" if args.use_inherited else "standalone"
     results_summary = {
-        'model': 'Control (No AKOrN Iterations) + ResNet',  # Changed model name
+        'model': f'Control (No AKOrN Iterations) + ResNet ({model_version})',  # Include version info
         'dataset': 'CIFAR-10',
         'final_test_accuracy': final_test_acc,
         'best_test_accuracy': best_acc,
@@ -964,7 +1113,8 @@ def main():
         'epochs_trained': len(history['train_loss']),
         'class_accuracies': final_class_accs,
         'config': config,
-        'control_note': 'AKOrN iterations removed, readout preserved'  # Added note
+        'control_note': 'AKOrN iterations removed, readout preserved',
+        'implementation_version': model_version  # Added version info
     }
     
     results_summary_path = save_dir / 'results_summary.json'
