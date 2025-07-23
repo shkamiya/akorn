@@ -10,6 +10,9 @@ from source.layers.common_layers import (
     FF,
     BNReLUConv2d,
 )
+from source.layers.kutils import (
+    normalize,
+)
 from source.layers.common_fns import positionalencoding2d
 from torchvision.models.resnet import BasicBlock
 
@@ -74,6 +77,9 @@ class MyAKOrN(nn.Module):
         self.T = self._expand_param(T, L)
         self.bp_steps = self._expand_param(bp_steps,L)
         self.ro_only = self._expand_param(ro_only, L)
+
+        self.c_norm = c_norm
+        self.ch = ch
 
         J = self._expand_param(J, L)
         ksizes = self._expand_param(ksizes, L)
@@ -207,6 +213,17 @@ class MyAKOrN(nn.Module):
                 # Readout-only layer, no K-layer processing
                 xs.append([x])
                 es.append([torch.zeros_like(x)])
+                # Maybe not needed, but may use in ro_only True case
+                if self.c_norm == "gn":
+                    c_norm_fcn = nn.GroupNorm(self.ch // self.n, self.ch, affine=True)
+                elif self.c_norm == "sandb":
+                    c_norm_fcn = ScaleAndBias(self.ch, token_input=False)
+                elif self.c_norm is None or self.c_norm == "none":
+                    c_norm_fcn = nn.Identity()
+                else:
+                    raise NotImplementedError
+                c = c_norm_fcn(c)
+                c = normalize(c, self.n)
                 c = readout_layer(c) # x is a random sampled matrix, thus use c instead
             
         # Final pooling
