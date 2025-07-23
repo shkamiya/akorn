@@ -96,6 +96,17 @@ class MyAKOrN(nn.Module):
         self.layers = self._create_layers(L, channels, strides, hw_sizes, J, J_bias, ksizes, ro_N, ro_ksize, norm, c_norm, use_omega, init_omg, global_omg, learn_omg)
         self.pool = nn.Sequential(nn.AdaptiveAvgPool2d((1, 1)), Reshape(-1, channels[-1]))
         self.out = nn.Linear(channels[-1], out_classes)
+        
+        # Create normalization layer for readout-only mode to avoid device mismatch
+        if c_norm == "gn":
+            self.ro_c_norm = nn.GroupNorm(ch // n, ch, affine=True)
+        elif c_norm == "sandb":
+            from source.layers.common_layers import ScaleAndBias
+            self.ro_c_norm = ScaleAndBias(ch, token_input=False)
+        elif c_norm is None or c_norm == "none":
+            self.ro_c_norm = nn.Identity()
+        else:
+            raise NotImplementedError
     
     def _expand_param(self, param, length):
         """Expand parameter to match the number of layers."""
@@ -213,16 +224,8 @@ class MyAKOrN(nn.Module):
                 # Readout-only layer, no K-layer processing
                 xs.append([x])
                 es.append([torch.zeros_like(x)])
-                # Maybe not needed, but may use in ro_only True case
-                if self.c_norm == "gn":
-                    c_norm_fcn = nn.GroupNorm(self.ch // self.n, self.ch, affine=True)
-                elif self.c_norm == "sandb":
-                    c_norm_fcn = ScaleAndBias(self.ch, token_input=False)
-                elif self.c_norm is None or self.c_norm == "none":
-                    c_norm_fcn = nn.Identity()
-                else:
-                    raise NotImplementedError
-                c = c_norm_fcn(c)
+                # Use pre-created normalization layer to avoid device mismatch
+                c = self.ro_c_norm(c)
                 c = normalize(c, self.n)
                 c = readout_layer(c) # x is a random sampled matrix, thus use c instead
             
