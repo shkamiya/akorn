@@ -26,9 +26,9 @@ singularity exec --nv \
   --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
   ~/singularity/kamiya_miyabi.sif \
   python scripts/eval_sudoku.py \
-      --model_path runs/sudoku_exp/ema_model.pth \
+      --model_path runs/sudoku_exp/ema_99.pth \
       --model akorn \
-      --L 1 --T 16 --ch 512 --N 4 --data id --K 1
+      --L 1 --T 256 --ch 512 --N 4 --data ood --K 1
 
 STATUS=$?   # 0=正常, それ以外=異常
 
