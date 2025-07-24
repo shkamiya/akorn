@@ -1,0 +1,383 @@
+import torch
+import sys, os
+import tqdm
+import argparse
+import wandb
+
+from source.models.sudoku.transformer import SudokuTransformer
+
+from source.training_utils import save_checkpoint, save_model
+from source.data.datasets.sudoku.sudoku import SudokuDataset, HardSudokuDataset
+from source.models.sudoku.knet import SudokuAKOrN
+from source.utils import str2bool
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import math
+from ema_pytorch import EMA
+
+
+def apply_threshold(model, threshold):
+    with torch.no_grad():
+        for param in model.parameters():
+            param.data = torch.where(
+                param.abs() < threshold, torch.tensor(0.0), param.data
+            )
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--exp_name", type=str, help="expname")
+    parser.add_argument("--seed", type=int, default=None, help="seed")
+    parser.add_argument("--epochs", type=int, default=100, help="num of epochs")
+    parser.add_argument("--lr", type=float, default=1e-3, help="lr")
+    parser.add_argument("--beta", type=float, default=0.995, help="ema decay")
+    parser.add_argument(
+        "--clip_grad_norm", type=float, default=1.0, help="clip grad norm"
+    )
+    parser.add_argument(
+        "--checkpoint_every",
+        type=int,
+        default=100,
+        help="save checkpoint every specified epochs",
+    )
+    parser.add_argument("--eval_freq", type=int, default=10, help="freqadv eval")
+
+    # Wandb arguments
+    parser.add_argument("--wandb_project", type=str, default="sudoku_akorn", help="wandb project name")
+    parser.add_argument("--wandb_entity", type=str, default=None, help="wandb entity name")
+    parser.add_argument("--no_wandb", action="store_true", help="disable wandb logging")
+    parser.add_argument("--wandb_run_name", type=str, default=None, help="wandb run name")
+
+    # Data loading
+    parser.add_argument("--limit_cores_used", type=str2bool, default=False)
+    parser.add_argument("--cpu_core_start", type=int, default=0, help="start core")
+    parser.add_argument("--cpu_core_end", type=int, default=16, help="end core")
+    parser.add_argument(
+        "--data_root",
+        type=str,
+        default=None,
+        help="Optional. Specify the root dir of the dataset. If None, use a default path set for each dataset",
+    )
+    parser.add_argument("--batchsize", type=int, default=100)
+    parser.add_argument("--num_workers", type=int, default=4)
+
+    # General model options
+    parser.add_argument("--model", type=str, default="akorn", help="model")
+    parser.add_argument("--L", type=int, default=1, help="num of layers")
+    parser.add_argument("--T", type=int, default=16, help="Timesteps")
+    parser.add_argument("--ch", type=int, default=512, help="num of channels")
+    parser.add_argument("--heads", type=int, default=8)
+
+    # AKOrN options
+    parser.add_argument("--N", type=int, default=4)
+    parser.add_argument("--gamma", type=float, default=1.0, help="step size")
+    parser.add_argument("--J", type=str, default="attn", help="connectivity")
+    parser.add_argument("--use_omega", type=str2bool, default=True)
+    parser.add_argument("--global_omg", type=str2bool, default=True)
+    parser.add_argument("--learn_omg", type=str2bool, default=False)
+    parser.add_argument("--init_omg", type=float, default=0.1)
+    parser.add_argument("--nl", type=str2bool, default=True)
+
+    parser.add_argument("--speed_test", action="store_true")
+
+    args = parser.parse_args()
+
+    print("Exp name: ", args.exp_name)
+
+    torch.backends.cudnn.benchmark = True
+    torch.backends.cuda.enable_flash_sdp(enabled=True)
+    
+    if args.seed is not None:
+        import random
+        import numpy as np
+
+        torch.manual_seed(args.seed)
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+
+    def worker_init_fn(worker_id):
+        os.sched_setaffinity(0, range(args.cpu_core_start, args.cpu_core_end))
+
+    if args.data_root is not None:
+        rootdir = args.data_root
+    else:
+        rootdir = "./data/sudoku"
+        
+    trainloader = torch.utils.data.DataLoader(
+        SudokuDataset(rootdir, train=True),
+        batch_size=args.batchsize,
+        shuffle=True,
+        num_workers=args.num_workers,
+        worker_init_fn=worker_init_fn,
+    )
+    testloader = torch.utils.data.DataLoader(
+        SudokuDataset(rootdir, train=False),
+        batch_size=100,
+        shuffle=False,
+        num_workers=args.num_workers,
+        worker_init_fn=worker_init_fn,
+    )
+
+    # Initialize wandb
+    if not args.no_wandb:
+        wandb_config = {
+            "exp_name": args.exp_name,
+            "seed": args.seed,
+            "epochs": args.epochs,
+            "lr": args.lr,
+            "beta": args.beta,
+            "clip_grad_norm": args.clip_grad_norm,
+            "eval_freq": args.eval_freq,
+            "batchsize": args.batchsize,
+            "model": args.model,
+            "L": args.L,
+            "T": args.T,
+            "ch": args.ch,
+            "heads": args.heads,
+            "N": args.N,
+            "gamma": args.gamma,
+            "J": args.J,
+            "use_omega": args.use_omega,
+            "global_omg": args.global_omg,
+            "learn_omg": args.learn_omg,
+            "init_omg": args.init_omg,
+            "nl": args.nl,
+        }
+        
+        run_name = args.wandb_run_name if args.wandb_run_name else f"{args.exp_name}_{args.model}_L{args.L}_T{args.T}"
+        
+        wandb.init(
+            project=args.wandb_project,
+            entity=args.wandb_entity,
+            name=run_name,
+            config=wandb_config,
+        )
+
+    jobdir = f"runs/{args.exp_name}/"
+    
+    # Create job directory
+    os.makedirs(jobdir, exist_ok=True)
+
+    # only compute digit-wise accuracy
+    from source.evals.sudoku.evals import compute_board_accuracy
+    def compute_acc(net, loader):
+        net.eval()
+        correct = 0
+        total = 0
+        correct_input = 0
+        total_input = 0
+        for X, Y, is_input in loader:
+            X, Y, is_input = X.to(torch.int32).cuda(), Y.cuda(), is_input.cuda()
+
+            with torch.no_grad():
+                out = net(X, is_input)
+            
+            _, _, board_accuracy = compute_board_accuracy(out, Y, is_input)
+            correct += board_accuracy.sum().item()
+            total += board_accuracy.shape[0]
+           
+            # digit wise input accuracy
+            out = out.argmax(dim=-1)
+            Y = Y.argmax(dim=-1)
+            mask = (1 - is_input).view(out.shape)
+            correct_input += ((1 - mask) * (out == Y)).sum().item()
+            total_input += (1 - mask).sum().item()
+
+        acc = correct / total
+        input_acc = correct_input / total_input
+        return acc, input_acc, (total, correct), (total_input, correct_input)
+
+    if args.model == "akorn":
+        print(
+            f"n: {args.N}, ch: {args.ch}, L: {args.L}, T: {args.T}, type of J: {args.J}"
+        )
+        net = SudokuAKOrN(
+            n=args.N,
+            ch=args.ch,
+            L=args.L,
+            T=args.T,
+            gamma=args.gamma,
+            J=args.J,
+            use_omega=args.use_omega,
+            global_omg=args.global_omg,
+            init_omg=args.init_omg,
+            learn_omg=args.learn_omg,
+            nl=args.nl,
+            heads=args.heads,
+        )
+    elif args.model == "itrsa":
+        net = SudokuTransformer(
+            ch=args.ch,
+            blocks=args.L,
+            heads=args.heads,
+            mlp_dim=args.ch * 2,
+            T=args.T,
+            gta=False,
+        )
+    else:
+        raise NotImplementedError
+
+    net.cuda()
+
+    total_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
+    print(f"Total number of parameters: {total_params}")
+
+    # Log model info to wandb
+    if not args.no_wandb:
+        wandb.log({
+            "model/total_params": total_params,
+            "model/model_size_mb": total_params * 4 / 1e6  # Assuming float32
+        })
+
+    optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
+
+    ema = EMA(net, beta=args.beta, update_every=10, update_after_step=100)
+
+    criterion = torch.nn.CrossEntropyLoss(reduction="none")
+
+    # Measure speed
+    if args.speed_test:
+        it_sp = 0
+        time_per_iter = []
+        import numpy as np
+        
+    best_acc = 0.0
+    best_ema_acc = 0.0
+        
+    for epoch in range(args.epochs):
+        total_loss = 0
+        step = 0
+
+        for X, Y, is_input in tqdm.tqdm(trainloader, desc=f"Epoch {epoch+1}/{args.epochs}"):
+            net.train()
+            ema.train()
+            X, Y, is_input = X.to(torch.int32).cuda(), Y.cuda(), is_input.cuda()
+
+            if args.speed_test:
+                start = torch.cuda.Event(enable_timing=True)
+                end = torch.cuda.Event(enable_timing=True)
+                start.record()
+
+            out = net(X, is_input)
+            
+            out = out.reshape(-1, 9)
+            Y = Y.argmax(dim=-1).reshape(-1)
+            
+            loss = criterion(out, Y).mean()
+            
+            optimizer.zero_grad()
+            loss.backward()
+            if args.clip_grad_norm > 0.:
+                torch.nn.utils.clip_grad_norm_(net.parameters(), args.clip_grad_norm)
+            optimizer.step()
+
+            if args.speed_test:
+                end.record()
+                torch.cuda.synchronize()
+                time_elapsed_per_iter = start.elapsed_time(end)
+                time_per_iter.append(time_elapsed_per_iter)
+                print(time_elapsed_per_iter)
+                it_sp = it_sp + 1
+                if it_sp == 100:
+                    np.save(os.path.join(jobdir, "time.npy"), np.array(time_per_iter))
+                    exit(0)
+
+            total_loss += loss.item()
+            ema.update()
+            
+            # Log batch-level metrics to wandb
+            if not args.no_wandb:
+                wandb.log({
+                    "train/batch_loss": loss.item(),
+                    "train/step": epoch * len(trainloader) + step,
+                    "train/epoch": epoch,
+                })
+            
+            step += 1
+
+        total_loss = total_loss / len(trainloader)
+
+        # Log epoch-level training metrics
+        log_dict = {"train/epoch_loss": total_loss, "epoch": epoch}
+        
+        if not args.no_wandb:
+            wandb.log(log_dict)
+            
+        print(f"Epoch [{epoch+1}/{args.epochs}], Loss: {total_loss:.4f}")
+
+        if (epoch + 1) % args.eval_freq == 0:
+
+            acc, input_acc, stats, stats_input = compute_acc(net, testloader)
+            
+            # Update best accuracy
+            if acc > best_acc:
+                best_acc = acc
+            
+            log_dict.update({
+                "test/accuracy": acc,
+                "test/input_accuracy": input_acc,
+                "test/total_blanks": stats[0],
+                "test/correct_blanks": stats[1],
+                "test/total_given": stats_input[0],
+                "test/correct_given": stats_input[1],
+                "test/best_accuracy": best_acc,
+            })
+            
+            print(f"[Test]: Total blanks:{stats[0]}, Accuracy: {acc:.4f}")
+            print(f"[Test]: Total given squares:{stats_input[0]}, Accuracy on given digits: {input_acc:.4f}")
+
+            # EMA evals
+            ema_acc, ema_input_acc, ema_stats, ema_stats_input = compute_acc(ema.ema_model, testloader)
+            
+            # Update best EMA accuracy
+            if ema_acc > best_ema_acc:
+                best_ema_acc = ema_acc
+            
+            log_dict.update({
+                "ema_test/accuracy": ema_acc,
+                "ema_test/input_accuracy": ema_input_acc,
+                "ema_test/total_blanks": ema_stats[0],
+                "ema_test/correct_blanks": ema_stats[1],
+                "ema_test/total_given": ema_stats_input[0],
+                "ema_test/correct_given": ema_stats_input[1],
+                "ema_test/best_accuracy": best_ema_acc,
+            })
+            
+            print(f"[EMA Test]: Total blanks:{ema_stats[0]}, Accuracy: {ema_acc:.4f}")
+            print(f"[EMA Test]: Total given squares:{ema_stats_input[0]}, Accuracy on given digits: {ema_input_acc:.4f}")
+            
+            # Log all evaluation metrics to wandb
+            if not args.no_wandb:
+                wandb.log(log_dict)
+
+        if (epoch + 1) % args.checkpoint_every == 0:
+            save_checkpoint(net, optimizer, epoch, total_loss, checkpoint_dir=jobdir)
+            save_model(ema, epoch, checkpoint_dir=jobdir, prefix="ema")
+
+    # Save final models
+    torch.save(net.state_dict(), os.path.join(jobdir, f"model.pth"))
+    torch.save(ema.state_dict(), os.path.join(jobdir, f"ema_model.pth"))
+    
+    # Log final results
+    if not args.no_wandb:
+        wandb.log({
+            "final/best_accuracy": best_acc,
+            "final/best_ema_accuracy": best_ema_acc,
+            "final/total_params": total_params,
+        })
+        
+        # Save model artifacts to wandb
+        model_artifact = wandb.Artifact(f"model_{args.exp_name}", type="model")
+        model_artifact.add_file(os.path.join(jobdir, "model.pth"))
+        model_artifact.add_file(os.path.join(jobdir, "ema_model.pth"))
+        wandb.log_artifact(model_artifact)
+        
+        wandb.finish()
+    
+    print(f"Training completed!")
+    print(f"Best accuracy: {best_acc:.4f}")
+    print(f"Best EMA accuracy: {best_ema_acc:.4f}")
+    print(f"Models saved in: {jobdir}")

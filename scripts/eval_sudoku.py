@@ -133,9 +133,16 @@ if __name__ == "__main__":
         raise NotImplementedError
 
     model = EMA(net).cuda()
-    model.load_state_dict(
-        torch.load(args.model_path, weights_only=True)["model_state_dict"]
-    )
+    
+    # Load model state dict - handle both checkpoint format and direct state dict format
+    checkpoint = torch.load(args.model_path, weights_only=True)
+    if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+        # Checkpoint format (from save_model function)
+        model.load_state_dict(checkpoint["model_state_dict"])
+    else:
+        # Direct state dict format (from final model save)
+        model.load_state_dict(checkpoint)
+    
     model = model.ema_model
     model.eval()
 
