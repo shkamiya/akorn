@@ -16,7 +16,7 @@ cd $PBS_O_WORKDIR
 
 export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
-export WANDB_PROJECT=my_sudoku_akorn
+export WANDB_PROJECT=sudoku_exp
 
 TODAY=$(date '+%Y%m%d')
 
@@ -25,13 +25,10 @@ singularity exec --nv \
   --bind $(pwd):/workspace \
   --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
   ~/singularity/kamiya_miyabi.sif \
-  python scripts/train_sudoku_wandb.py \
-      --exp_name my_sudoku_akorn \
-      --wandb_project my_sudoku_akorn \
-      --epochs 100 \
-      --batchsize 128 \
-      --lr 1e-3 \
-      --N 4 --ch 512 --T 16 --L 1 
+  python scripts/eval_sudoku.py \
+      --model_path runs/sudoku_exp/ema_99.pth \
+      --model akorn \
+      --L 1 --T 256 --ch 512 --N 4 --data ood --K 1
 
 STATUS=$?   # 0=正常, それ以外=異常
 

@@ -8,14 +8,15 @@ from source.models.sudoku.transformer import SudokuTransformer
 
 from source.training_utils import save_checkpoint, save_model
 from source.data.datasets.sudoku.sudoku import SudokuDataset, HardSudokuDataset
-from source.models.sudoku.knet import SudokuAKOrN
+#from source.models.sudoku.knet import SudokuAKOrN
+from source.models.sudoku.my_knet import MySudokuAKOrN as SudokuAKOrN
 from source.utils import str2bool
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
 from ema_pytorch import EMA
-
+import datetime
 
 def apply_threshold(model, threshold):
     with torch.no_grad():
@@ -50,6 +51,9 @@ if __name__ == "__main__":
     parser.add_argument("--wandb_entity", type=str, default=None, help="wandb entity name")
     parser.add_argument("--no_wandb", action="store_true", help="disable wandb logging")
     parser.add_argument("--wandb_run_name", type=str, default=None, help="wandb run name")
+    
+    # Save directory
+    parser.add_argument('--save-dir', type=str, default=None, help='Directory to save results. Defaults to [experiment_name]_[timestamp]')
 
     # Data loading
     parser.add_argument("--limit_cores_used", type=str2bool, default=False)
@@ -75,11 +79,14 @@ if __name__ == "__main__":
     parser.add_argument("--N", type=int, default=4)
     parser.add_argument("--gamma", type=float, default=1.0, help="step size")
     parser.add_argument("--J", type=str, default="attn", help="connectivity")
+    parser.add_argument("--J_bias", type=str2bool, default=False, help="use bias in connectivity")
     parser.add_argument("--use_omega", type=str2bool, default=True)
     parser.add_argument("--global_omg", type=str2bool, default=True)
     parser.add_argument("--learn_omg", type=str2bool, default=False)
     parser.add_argument("--init_omg", type=float, default=0.1)
     parser.add_argument("--nl", type=str2bool, default=True)
+    parser.add_argument("--ksize", type=int, default=9, help="kernel size for KLayer")
+    parser.add_argument("--bp_steps", type=int, default=None, help="number of back propagation steps in KLayer")
 
     parser.add_argument("--speed_test", action="store_true")
 
@@ -125,6 +132,7 @@ if __name__ == "__main__":
     if not args.no_wandb:
         wandb_config = {
             "exp_name": args.exp_name,
+            "save_dir": args.save_dir,
             "seed": args.seed,
             "epochs": args.epochs,
             "lr": args.lr,
@@ -145,6 +153,9 @@ if __name__ == "__main__":
             "learn_omg": args.learn_omg,
             "init_omg": args.init_omg,
             "nl": args.nl,
+            "J_bias": args.J_bias,
+            "ksize": args.ksize,
+            "bp_steps": args.bp_steps,
         }
         
         run_name = args.wandb_run_name if args.wandb_run_name else f"{args.exp_name}_{args.model}_L{args.L}_T{args.T}"
@@ -155,8 +166,12 @@ if __name__ == "__main__":
             name=run_name,
             config=wandb_config,
         )
-
-    jobdir = f"runs/{args.exp_name}/"
+    
+    if args.save_dir is None:
+        current_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        args.save_dir = f"./results/{args.exp_name}_{current_time}"
+    jobdir = args.save_dir
+    #jobdir = f"runs/{args.exp_name}/"
     
     # Create job directory
     os.makedirs(jobdir, exist_ok=True)
@@ -192,7 +207,7 @@ if __name__ == "__main__":
 
     if args.model == "akorn":
         print(
-            f"n: {args.N}, ch: {args.ch}, L: {args.L}, T: {args.T}, type of J: {args.J}"
+            f"n: {args.N}, ch: {args.ch}, L: {args.L}, T: {args.T}, type of J: {args.J}, J_bias: {args.J_bias}, ksize: {args.ksize}"
         )
         net = SudokuAKOrN(
             n=args.N,
@@ -206,7 +221,10 @@ if __name__ == "__main__":
             init_omg=args.init_omg,
             learn_omg=args.learn_omg,
             nl=args.nl,
-            heads=args.heads,
+            heads=args.heads, # below the next line, only used for MySudokuAKOrN
+            ksize=args.ksize,
+            bp_steps=args.bp_steps,
+            J_bias=args.J_bias,
         )
     elif args.model == "itrsa":
         net = SudokuTransformer(

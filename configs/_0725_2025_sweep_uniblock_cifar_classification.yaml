@@ -1,0 +1,12 @@
+# parameter sweep using cifar10_myakorn_classification.py
+grid:
+  n:        [2]
+  ch:       [128]
+  L:        [1]
+  T:        [31, 63, 127]
+  gamma:    [0.01]
+  ksizes:   [3]
+  J_bias:   [false]
+  global-omg: [false]
+  bp-steps  : [null, 1, 0]
+  ro-fcn:   ["full", "norm_id"]

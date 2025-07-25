@@ -72,6 +72,8 @@ def get_config():
         'learn_omg': True,   # Learn omega parameters
         'ensemble': 1,       # Ensemble size
         'bp_steps': None,    # Steps to apply BP for each layer
+        'ro_only': False,    # True for readout only mode (no oscillators)
+        'ro_fcn': "full",    # simplicity of readout function
         
         # Training
         'epochs': 100,
@@ -157,6 +159,8 @@ def create_model(config, device):
         learn_omg=config['learn_omg'],
         ensemble=config['ensemble'],
         bp_steps=config['bp_steps'],
+        ro_only=config['ro_only'],
+        ro_fcn=config['ro_fcn'],
     ).to(device)
     
     return model
@@ -301,7 +305,9 @@ def main():
     parser.add_argument('--global-omg', type=str2bool, default=True, help='Global omega parameter')
     parser.add_argument('--learn-omg', type=str2bool, default=True, help='Learn omega parameters')
     parser.add_argument('--ensemble', type=int, default=1, help='Ensemble size')
-    parser.add_argument('--bp_steps', type=int, default=None, help='Steps of back propagations in each layer, can be None or an L-element list of the numbers to apply BP')
+    parser.add_argument('--bp-steps', type=int, default=None, help='Steps of back propagations in each layer, can be None or an L-element list of the numbers to apply BP')
+    parser.add_argument('--ro-only', type=str2bool, default=False, help='True for readout only mode (no oscillators)')
+    parser.add_argument('--ro-fcn', type=str, default="full", choices=["full", "norm_id"], help='Readout function type: full or simple')
         
     # Training arguments
     parser.add_argument('--epochs', type=int, default=100, help='Number of training epochs')

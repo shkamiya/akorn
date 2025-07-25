@@ -25,12 +25,16 @@ singularity exec --nv \
   --bind $(pwd):/workspace \
   --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
   ~/singularity/kamiya_miyabi.sif \
-  python scripts/train_sudoku.py \
+  python scripts/train_sudoku_wandb.py \
       --exp_name sudoku_exp \
+      --wandb_project sudoku_exp \
       --epochs 100 \
       --batchsize 128 \
       --lr 1e-3 \
-      --N 4 --ch 512 --T 16 --L 1
+      --J "conv" \
+      --J_bias False \
+      --ksize 1 \
+      --N 4 --ch 512 --T 16 --L 1 --gamma 0.01
 
 STATUS=$?   # 0=正常, それ以外=異常
 

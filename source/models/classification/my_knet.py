@@ -63,6 +63,7 @@ class MyAKOrN(nn.Module):
         ensemble=1,
         bp_steps=None,
         ro_only=False,
+        ro_fcn="full",
     ):
         super().__init__()
         
@@ -77,6 +78,7 @@ class MyAKOrN(nn.Module):
         self.T = self._expand_param(T, L)
         self.bp_steps = self._expand_param(bp_steps,L)
         self.ro_only = self._expand_param(ro_only, L)
+        self.ro_fcn = self._expand_param(ro_fcn, L)
 
         self.c_norm = c_norm
         self.ch = ch
@@ -127,35 +129,45 @@ class MyAKOrN(nn.Module):
     def _create_readout_block(self, channels, ro_N, ro_ksize, norm):
         """Create a readout block."""
         padding = ro_ksize // 2
-        return nn.Sequential(
-            ReadOutConv(
+        if self.ro_fcn is "full":
+            return nn.Sequential(
+                ReadOutConv(
+                    inch=channels,
+                    outch=channels,
+                    ro_N=ro_N,
+                    kernel_size=ro_ksize,
+                    stride=1,
+                    padding=padding,
+                ),
+                ResBlock(
+                    FF(
+                        inch=channels,
+                        outch=channels,
+                        hidch=channels,
+                        kernel_size=ro_ksize,
+                        stride=1,
+                        padding=padding,
+                        norm=norm,
+                    )
+                ),
+                BNReLUConv2d(
+                    inch=channels,
+                    outch=channels,
+                    kernel_size=ro_ksize,
+                    stride=1,
+                    padding=padding,
+                    norm=norm,
+                )
+            )
+        elif self.ro_fcn is "norm_id":
+             ReadOutConv(
                 inch=channels,
                 outch=channels,
                 ro_N=ro_N,
                 kernel_size=ro_ksize,
                 stride=1,
                 padding=padding,
-            ),
-            ResBlock(
-                FF(
-                    inch=channels,
-                    outch=channels,
-                    hidch=channels,
-                    kernel_size=ro_ksize,
-                    stride=1,
-                    padding=padding,
-                    norm=norm,
-                )
-            ),
-            BNReLUConv2d(
-                inch=channels,
-                outch=channels,
-                kernel_size=ro_ksize,
-                stride=1,
-                padding=padding,
-                norm=norm,
             )
-        )
     
     def _create_layers(self, L, channels, strides, hw_sizes, J, J_bias, ksizes, ro_N, ro_ksize, norm, c_norm, use_omega, init_omg, global_omg, learn_omg):
         """Create all network layers."""
@@ -800,25 +812,25 @@ class MyAKOrNSimplerReadout(nn.Module):
                 stride=1,
                 padding=padding,
             ),
-            ResBlock(
-                FF(
-                    inch=channels,
-                    outch=channels,
-                    hidch=channels,
-                    kernel_size=ro_ksize,
-                    stride=1,
-                    padding=padding,
-                    norm=norm,
-                )
-            ),
-            BNReLUConv2d(
-                inch=channels,
-                outch=channels,
-                kernel_size=ro_ksize,
-                stride=1,
-                padding=padding,
-                norm=norm,
-            )
+            # ResBlock(
+            #     FF(
+            #         inch=channels,
+            #         outch=channels,
+            #         hidch=channels,
+            #         kernel_size=ro_ksize,
+            #         stride=1,
+            #         padding=padding,
+            #         norm=norm,
+            #     )
+            # ),
+            # BNReLUConv2d(
+            #     inch=channels,
+            #     outch=channels,
+            #     kernel_size=ro_ksize,
+            #     stride=1,
+            #     padding=padding,
+            #     norm=norm,
+            # )
         )
     
     def _create_layers(self, L, channels, strides, hw_sizes, J, J_bias, ksizes, ro_N, ro_ksize, norm, c_norm, use_omega, init_omg, global_omg, learn_omg):

@@ -1,12 +1,14 @@
 #!/bin/bash
 #PBS -q short-g
 #PBS -l select=1
-#PBS -l walltime=04:00:00
-#PBS -N sudoku_exp
+#PBS -l walltime=06:00:00
+#PBS -N sweep_simplero_my_akorn_cifar10
 #PBS -o logs/
 #PBS -e logs/
 #PBS -j oe
 #PBS -W group_list=gj26
+
+# #-tというオプションは使えないので外からfor loopでまわす
 
 module purge
 module load singularity
@@ -16,7 +18,7 @@ cd $PBS_O_WORKDIR
 
 export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
-export WANDB_PROJECT=my_sudoku_akorn
+export WANDB_PROJECT=sweep_simplero_my_akorn_cifar10
 
 TODAY=$(date '+%Y%m%d')
 
@@ -25,13 +27,15 @@ singularity exec --nv \
   --bind $(pwd):/workspace \
   --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
   ~/singularity/kamiya_miyabi.sif \
-  python scripts/train_sudoku_wandb.py \
-      --exp_name my_sudoku_akorn \
-      --wandb_project my_sudoku_akorn \
-      --epochs 100 \
-      --batchsize 128 \
-      --lr 1e-3 \
-      --N 4 --ch 512 --T 16 --L 1 
+  python scripts/cifar10_myakorn_classification.py \
+      --wandb-project sweep_simplero_my_akorn_cifar10  \
+      --experiment-name sweep_simplero_my_akorn_cifar10 \
+      --epochs 30 \
+      --batch-size 64 \
+      --lr 1e-4 \
+      --param-file configs/_0725_2025_sweep_uniblock_cifar_classification.yaml \
+      --index ${INDEX} \
+      --save-dir "results/sweep_${TODAY}_${PBS_JOBID}_${INDEX}"
 
 STATUS=$?   # 0=正常, それ以外=異常
 

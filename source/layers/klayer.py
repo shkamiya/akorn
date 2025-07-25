@@ -117,6 +117,14 @@ class KLayer(nn.Module):  # Kuramoto layer
                 hw=hw,
             )
             self.x_type = "image"
+        elif J == "full":  # Added by SK on Jul 24 2025, full connection
+            dim = ch * hw[0] * hw[1] if hw is not None else ch
+            self.connectivity = nn.Sequential(
+                nn.Flatten(start_dim=1),
+                nn.Linear(dim, dim, bias=J_bias),
+                nn.Unflatten(1, (ch, hw[0], hw[1])) if hw is not None else nn.Identity()
+            )
+            self.x_type = "image"
         else:
             raise NotImplementedError
 
