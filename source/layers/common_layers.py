@@ -254,6 +254,12 @@ class FeatureAttention(nn.Module):
 
 
 class Attention(nn.Module):
+    """
+    Multi-head attention layer for image-like inputs.
+    input: [B, C, H, W]
+    output: [B, C, H, W] or [B, K, C]
+    """
+
     def __init__(
         self,
         ch,
@@ -280,14 +286,14 @@ class Attention(nn.Module):
                 kernel_size=kernel_size,
                 stride=stride,
                 padding=padding,
-            )
+            ) # [B, ch, H, W] -> [B, 3*ch, H', W'], specifically [B, 3*ch, H, W]
             self.W_o = nn.Conv2d(
                 ch,
                 ch,
                 kernel_size=kernel_size,
                 stride=stride,
                 padding=padding,
-            )
+            ) # [B, ch, H', W'] -> [B, ch, H, W]
         elif weight == "fc":
             self.W_qkv = nn.Linear(ch, 3 * ch)
             self.W_o = nn.Linear(ch, ch)
@@ -353,11 +359,11 @@ class Attention(nn.Module):
             else "b k (c nh)  -> b nh k c"
         )
         dim = 1 if self.weight == "conv" else 2
-        q, k, v = self.W_qkv(x).chunk(3, dim=dim)
+        q, k, v = self.W_qkv(x).chunk(3, dim=dim) # q, k, v: [B, ch, H, W]
         q, k, v = map(
             lambda x: einops.rearrange(x, reshape_str, nh=self.heads),
             (q, k, v),
-        )
+        ) # q, k, v: [B, heads, H*W, head_dim]
         if self.gta:
             q, k, v = map(
                 lambda args: rep_mul_x(self.rescale_gta_mat(args[0], (h, w)), args[1]),

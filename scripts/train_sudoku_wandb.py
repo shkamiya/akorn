@@ -158,7 +158,7 @@ if __name__ == "__main__":
             "bp_steps": args.bp_steps,
         }
         
-        run_name = args.wandb_run_name if args.wandb_run_name else f"{args.exp_name}_{args.model}_L{args.L}_T{args.T}"
+        run_name = args.wandb_run_name if args.wandb_run_name else f"{args.exp_name}_T{args.T}"
         
         wandb.init(
             project=args.wandb_project,
@@ -204,6 +204,27 @@ if __name__ == "__main__":
         acc = correct / total
         input_acc = correct_input / total_input
         return acc, input_acc, (total, correct), (total_input, correct_input)
+    
+    def compute_train_acc(net, loader, max_batches=10):
+        """Training accuracy computation (limited batches for efficiency)"""
+        net.eval()
+        correct, total = 0, 0
+        batch_count = 0
+
+        with torch.no_grad():
+            for X, Y, is_input in loader:
+                if batch_count >= max_batches:
+                    break
+
+                X, Y, is_input = X.to(torch.int32).cuda(), Y.cuda(), is_input.cuda()
+                out = net(X, is_input)
+
+                _, _, board_accuracy = compute_board_accuracy(out, Y, is_input)
+                correct += board_accuracy.sum().item()
+                total += board_accuracy.shape[0]
+                batch_count += 1
+
+        return correct / total if total > 0 else 0.0
 
     if args.model == "akorn":
         print(
@@ -326,10 +347,15 @@ if __name__ == "__main__":
             
         print(f"Epoch [{epoch+1}/{args.epochs}], Loss: {total_loss:.4f}")
 
-        if (epoch + 1) % args.eval_freq == 0:
+        if (epoch + 1) % args.eval_freq == 0:  # 同じ頻度で評価
+            # Training accuracy computation
+            train_acc = compute_train_acc(net, trainloader, max_batches=10)
+            log_dict.update({"train/accuracy": train_acc})
+            print(f"[Train]: Accuracy: {train_acc:.4f}")
 
+            # Test accuracy computation
             acc, input_acc, stats, stats_input = compute_acc(net, testloader)
-            
+
             # Update best accuracy
             if acc > best_acc:
                 best_acc = acc

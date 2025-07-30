@@ -82,7 +82,7 @@ class MySudokuAKOrN(nn.Module):
 
     def feature(self, inp, is_input):
         # inp: torch.Tensor of shape [B, 9, 9, 9] the last dim repreents the digit in the one-hot representation.
-        inp = convert_onehot_to_int(inp)
+        inp = convert_onehot_to_int(inp) # [B,9,9] tensor of Sudoku surface
         c = self.embedding(inp).permute(0, 3, 1, 2)
         is_input = is_input.permute(0, 3, 1, 2)
         xs = []
