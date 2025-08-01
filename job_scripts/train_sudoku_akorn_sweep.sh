@@ -2,7 +2,7 @@
 #PBS -q short-g
 #PBS -l select=1
 #PBS -l walltime=04:00:00
-#PBS -N sudoku_exp
+#PBS -N sudoku_sweep
 #PBS -o logs/
 #PBS -e logs/
 #PBS -j oe
@@ -20,23 +20,26 @@ export WANDB_PROJECT=my_sudoku_akorn
 
 TODAY=$(date '+%Y%m%d')
 
-# --- 実行 ---
+# --- Sweep IDを環境変数またはファイルから取得 ---
+if [ -z "$WANDB_SWEEP_ID" ]; then
+    if [ -f "sweep_id.txt" ]; then
+        WANDB_SWEEP_ID=$(cat sweep_id.txt)
+    else
+        echo "ERROR: WANDB_SWEEP_ID not set and sweep_id.txt not found"
+        echo "Run: wandb sweep configs/_0801_2025_sweep_sudoku.yaml"
+        echo "Then: echo 'your_sweep_id' > sweep_id.txt"
+        exit 1
+    fi
+fi
+
+echo "Using sweep ID: $WANDB_SWEEP_ID"
+
+# --- Sweep Agent実行 ---
 singularity exec --nv \
   --bind $(pwd):/workspace \
   --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
   ~/singularity/kamiya_miyabi.sif \
-  python scripts/train_sudoku_wandb.py \
-      --exp_name my_sudoku_akorn \
-      --wandb_project my_sudoku_akorn \
-      --save-dir "results/${TODAY}_${PBS_JOBID}" \
-      --wandb_run_name "{exp_name}_T{T}_N{N}_ch{ch}_J${PBS_JOBID}" \
-      --epochs 100 \
-      --batchsize 128 \
-      --lr 1e-3 \
-      --J "attn" \
-      --J_bias False \
-      --ksize 1 \
-      --N 2 --ch 2048 --T 16 --L 1 
+  wandb agent $WANDB_SWEEP_ID 
 
 STATUS=$?   # 0=正常, それ以外=異常
 
@@ -52,9 +55,9 @@ send_slack() {         # 小さなヘルパー関数
 }
 
 if [ "$STATUS" -eq 0 ]; then
-    MESSAGE="✅ *Job Finished Successfully*\n> Job Name: \`$JOB_NAME\`\n> Job ID: \`$JOB_ID\`\n> Node: \`$NODE_NAME\`"
+    MESSAGE="✅ *Sweep Job Finished Successfully*\n> Job Name: \`$JOB_NAME\`\n> Job ID: \`$JOB_ID\`\n> Node: \`$NODE_NAME\`\n> Sweep ID: \`$WANDB_SWEEP_ID\`"
     send_slack "$MESSAGE"
 else
-    MESSAGE="❌ *Job Failed*\n> Job Name: \`$JOB_NAME\`\n> Job ID: \`$JOB_ID\`\n> Node: \`$NODE_NAME\`\n> Exit Code: \`$STATUS\`"
+    MESSAGE="❌ *Sweep Job Failed*\n> Job Name: \`$JOB_NAME\`\n> Job ID: \`$JOB_ID\`\n> Node: \`$NODE_NAME\`\n> Sweep ID: \`$WANDB_SWEEP_ID\`\n> Exit Code: \`$STATUS\`"
     send_slack "$MESSAGE"
 fi
