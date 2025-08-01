@@ -157,13 +157,18 @@ if __name__ == "__main__":
             "ksize": args.ksize,
             "bp_steps": args.bp_steps,
         }
-        
-        run_name = args.wandb_run_name if args.wandb_run_name else f"{args.exp_name}_T{args.T}"
+
+        job_id = os.environ.get("PBS_JOBID", "local")
+        if args.wandb_run_name is not None:
+            wandb_run_name = args.wandb_run_name.format(**vars(args), job_id=job_id)
+        else:
+            wandb_run_name = f"{wandb_config['exp_name']}_job{job_id}"
+        #run_name = args.wandb_run_name if args.wandb_run_name else f"{args.exp_name}_T{args.T}"
         
         wandb.init(
             project=args.wandb_project,
             entity=args.wandb_entity,
-            name=run_name,
+            name=wandb_run_name,
             config=wandb_config,
         )
     

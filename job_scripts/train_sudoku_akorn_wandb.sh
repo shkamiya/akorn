@@ -31,7 +31,7 @@ singularity exec --nv \
       --epochs 100 \
       --batchsize 128 \
       --lr 1e-3 \
-      --J "conv" \
+      --J "attn" \
       --J_bias False \
       --ksize 1 \
       --N 4 --ch 512 --T 16 --L 1 --gamma 0.01

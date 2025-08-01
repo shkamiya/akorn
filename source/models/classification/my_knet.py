@@ -78,7 +78,8 @@ class MyAKOrN(nn.Module):
         self.T = self._expand_param(T, L)
         self.bp_steps = self._expand_param(bp_steps,L)
         self.ro_only = self._expand_param(ro_only, L)
-        self.ro_fcn = self._expand_param(ro_fcn, L)
+        self.ro_fcn = ro_fcn  # Readout function type
+        #self.ro_fcn = self._expand_param(ro_fcn, L)
 
         self.c_norm = c_norm
         self.ch = ch
@@ -129,7 +130,7 @@ class MyAKOrN(nn.Module):
     def _create_readout_block(self, channels, ro_N, ro_ksize, norm):
         """Create a readout block."""
         padding = ro_ksize // 2
-        if self.ro_fcn is "full":
+        if self.ro_fcn == "full":
             return nn.Sequential(
                 ReadOutConv(
                     inch=channels,
@@ -159,8 +160,8 @@ class MyAKOrN(nn.Module):
                     norm=norm,
                 )
             )
-        elif self.ro_fcn is "norm_id":
-             ReadOutConv(
+        elif self.ro_fcn == "norm_id":
+            return ReadOutConv(
                 inch=channels,
                 outch=channels,
                 ro_N=ro_N,
