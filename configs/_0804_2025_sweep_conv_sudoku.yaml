@@ -1,0 +1,35 @@
+program: scripts/train_sudoku_wandb.py
+method: grid
+parameters:
+  wandb_project:
+    values: ["sudoku_conv_sweep"]
+  lr:
+    values: [1e-3]
+  N:
+    values: [2,4]
+  ch:
+    values: [512]
+  T:
+    values: [4, 8, 16, 32]
+  L:
+    values: [1]
+  gamma:
+    values: [0.01]
+  J:
+    values: ["conv"]
+  J_bias:
+    values: [false]
+  ksize:
+    values: [3, 5, 9]
+
+command:
+  - ${env}
+  - python
+  - ${program}
+  - ${args}
+  - --wandb_project
+  - "sudoku_conv_sweep"
+  - --exp_name
+  - sudoku_conv_sweep
+  - --wandb_run_name
+  - "{exp_name}_N{N}_T{T}_bp{bp_steps}_gam{gamma}_job{job_id}"

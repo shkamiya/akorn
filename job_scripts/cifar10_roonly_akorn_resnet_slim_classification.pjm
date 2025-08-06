@@ -35,7 +35,7 @@ singularity exec --nv                         \
       --wandb-project "${WANDB_PROJECT}"               \
       --epochs 30                                      \
       --batch-size 64                                  \
-      --lr 5e-4 \
+      --lr 1e-4 \
       --n 2 --ch 128 --ro-only True
 
 STATUS=$?   # 0=正常終了

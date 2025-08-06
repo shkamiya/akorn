@@ -1,0 +1,29 @@
+program: scripts/train_sudoku_wandb.py
+method: grid
+parameters:
+  wandb_project:
+    values: ["sudoku_sweep"]
+  lr:
+    values: [1e-3]
+  N:
+    values: [4]
+  ch:
+    values: [512]
+  T:
+    values: [4, 8, 16, 32]
+  L:
+    values: [1]
+  gamma:
+    values: [0.01]
+  bp_steps:
+    values: [null, 1, 4]
+
+command:
+  - ${env}
+  - python
+  - ${program}
+  - --exp_name
+  - sudoku_sweep
+  - ${args}
+  - --wandb_run_name
+  - "{exp_name}_N{N}_T{T}_bp{bp_steps}_gam{gamma}_job{job_id}"

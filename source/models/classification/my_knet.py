@@ -320,6 +320,7 @@ class AKOrNResNet(nn.Module):
         self.n  = n
         self.ch = ch
         self.transform_to_theta = transform_to_theta
+        self.ro_only = ro_only
         # J = self._expand_param(J, L)
         
         # For debugging
@@ -367,8 +368,15 @@ class AKOrNResNet(nn.Module):
         self.xs = xs
         self.es = es
 
-        self.x = xs[-1][-1]
-        self.c = self.kur1.layers[-1][3](self.x)
+        if self.ro_only: # If readout-only mode, recalculate conv0 and readout
+             # conv0→正規化→readout までを再計算
+             c = self.kur1.conv0(self.kur1.rgb_normalize(inp))
+             c = self.kur1.ro_c_norm(c)
+             c = self.kur1.layers[-1][3](c) # x を使わない
+             self.c = c
+        else:
+            self.x = xs[-1][-1]
+            self.c = self.kur1.layers[-1][3](self.x)
         
         if self.transform_to_theta and self.n==2:
             y = torch.atan2(self.c[:,1::2,:,:], self.c[:,0::2,:,:])

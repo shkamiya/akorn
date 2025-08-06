@@ -39,7 +39,7 @@ singularity exec --nv \
   --bind $(pwd):/workspace \
   --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
   ~/singularity/kamiya_miyabi.sif \
-  wandb agent $WANDB_SWEEP_ID 
+  python -m wandb agent $WANDB_SWEEP_ID 
 
 STATUS=$?   # 0=正常, それ以外=異常
 
