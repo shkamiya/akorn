@@ -1,0 +1,69 @@
+#!/bin/bash
+#PJM -L "rscunit=rscunit_ft01"
+#PJM -L "rscgrp=small"
+#PJM -L "node=1"
+#PJM -L "elapse=04:00:00"
+#PJM -j
+#PJM -N sudoku_sweep
+#PJM -o logs/
+#PJM -e logs/
+
+# Wisteria environment setup
+module purge
+module load singularity
+
+# Change to working directory
+cd $PJM_O_WORKDIR
+
+# Set environment variables
+export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
+export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
+export WANDB_PROJECT=my_sudoku_akorn
+
+# Create logs directory if it doesn't exist
+mkdir -p logs
+
+# --- Sweep IDを環境変数またはファイルから取得 ---
+if [ -z "$WANDB_SWEEP_ID" ]; then
+    if [ -f "sweep_id.txt" ]; then
+        WANDB_SWEEP_ID=$(cat sweep_id.txt)
+    else
+        echo "ERROR: WANDB_SWEEP_ID not set and sweep_id.txt not found"
+        echo "Run: singularity exec kamiya_miyabi.sif python -m wandb sweep configs/_0801_2025_sweep_sudoku.yaml"
+        echo "Then: echo 'your_sweep_id' > sweep_id.txt"
+        exit 1
+    fi
+fi
+
+echo "Using sweep ID: $WANDB_SWEEP_ID"
+
+# --- Sweep Agent実行 ---
+singularity exec --nv \
+  --bind $(pwd):/workspace \
+  --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
+  ~/singularity/kamiya_miyabi.sif \
+  python -m wandb agent $WANDB_SWEEP_ID
+
+STATUS=$?   # 0=正常, それ以外=異常
+
+# ---- Slack 通知 (Optional) ----
+JOB_NAME=$PJM_JOB_NAME
+JOB_ID=$PJM_JOB_ID
+NODE_NAME=$(hostname)
+
+send_slack() {
+  if [ -n "$SLACK_WEBHOOK" ]; then
+    curl -s -X POST -H 'Content-type: application/json' \
+         --data "{\"text\":\"$1\"}" "$SLACK_WEBHOOK"
+  fi
+}
+
+if [ "$STATUS" -eq 0 ]; then
+    MESSAGE="✅ *Sweep Job Finished Successfully*\n> Job Name: \`$JOB_NAME\`\n> Job ID: \`$JOB_ID\`\n> Node: \`$NODE_NAME\`\n> Sweep ID: \`$WANDB_SWEEP_ID\`"
+    send_slack "$MESSAGE"
+else
+    MESSAGE="❌ *Sweep Job Failed*\n> Job Name: \`$JOB_NAME\`\n> Job ID: \`$JOB_ID\`\n> Node: \`$NODE_NAME\`\n> Sweep ID: \`$WANDB_SWEEP_ID\`\n> Exit Code: \`$STATUS\`"
+    send_slack "$MESSAGE"
+fi
+
+echo "Job completed with status: $STATUS"

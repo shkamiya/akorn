@@ -1,5 +1,6 @@
 program: scripts/train_sudoku_wandb.py
 method: grid
+project: my_sudoku_akorn
 parameters:
   lr:
     values: [1e-3]
