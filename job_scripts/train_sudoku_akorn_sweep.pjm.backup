@@ -1,18 +1,15 @@
 #!/bin/bash
-#PJM -L rscgrp=regular-a
-#PJM -L elapse=08:00:00
-#PJM -L node=1
+#PJM -L ""
+#PJM -L "rscgrp=share-short"
+#PJM -L "elapse=02:00:00"
+#PJM -L "gpu=1"
+#PJM -j
 #PJM -g gb20
 #PJM -N sudoku_sweep
 #PJM -o logs/sweep_job_%j.out
 #PJM -e logs/sweep_job_%j.err
-#PJM -j
-#PJM -L jobenv=singularity
-
-# set -euo pipefail
 
 # Wisteria environment setup
-
 module purge
 module load singularity
 
@@ -22,8 +19,7 @@ cd /work/gb20/b20109/akorn
 # Set environment variables
 export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 export WANDB_API_KEY=ac9bc3f259163957d95686abca5fb49df1713b65
-export WANDB_ENTITY=shunsuke-kamiya-the-university-of-tokyo
-export WANDB_PROJECT=sudoku_sweep_wisteria
+export WANDB_PROJECT=my_sudoku_akorn
 
 # Create logs directory if it doesn't exist
 mkdir -p logs
@@ -34,7 +30,7 @@ if [ -z "$WANDB_SWEEP_ID" ]; then
         WANDB_SWEEP_ID=$(cat sweep_id.txt)
     else
         echo "ERROR: WANDB_SWEEP_ID not set and sweep_id.txt not found"
-        echo "Run: singularity exec kamiya_wisteria.sif python -m wandb sweep configs/_0808_2025_sweep_sudoku_wisteria.yaml"
+        echo "Run: /usr/bin/singularity exec --bind $(pwd):/workspace ~/singularity/kamiya_wisteria.sif python -m wandb agent $WANDB_SWEEP_ID
         echo "Then: echo 'your_sweep_id' > sweep_id.txt"
         exit 1
     fi
@@ -43,10 +39,11 @@ fi
 echo "Using sweep ID: $WANDB_SWEEP_ID"
 
 # --- Sweep Agent実行 ---
-singularity exec --nv --bind $(pwd):/workspace \
-    --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
-    ~/singularity/kamiya_wisteria.sif \
-    python -m wandb agent $WANDB_SWEEP_ID
+/usr/bin/singularity exec --bind $(pwd):/workspace ~/singularity/kamiya_wisteria.sif python -m wandb agent $WANDB_SWEEP_ID
+  --bind $(pwd):/workspace \
+  --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
+  ~/singularity/kamiya_wisteria.sif \
+  python -m wandb agent $WANDB_SWEEP_ID
 
 STATUS=$?   # 0=正常, それ以外=異常
 
@@ -57,7 +54,8 @@ NODE_NAME=$(hostname)
 
 send_slack() {
   if [ -n "$SLACK_WEBHOOK" ]; then
-    curl -s -X POST -H 'Content-type: application/json' --data "{\"text\":\"$1\"}" "$SLACK_WEBHOOK"
+    curl -s -X POST -H 'Content-type: application/json' \
+         --data "{\"text\":\"$1\"}" "$SLACK_WEBHOOK"
   fi
 }
 
