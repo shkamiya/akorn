@@ -60,7 +60,7 @@ for result_dir in results/sudoku_sweep_altered_loss_*; do
                         singularity exec --nv \
                           --bind $(pwd):/workspace \
                           --bind /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt \
-                          ~/singularity/kamiya_miyabi.sif \
+                          ~/singularity/kamiya_wisteria.sif \
                           python scripts/eval_sudoku.py \
                               --model_path "$model_file" \
                               --model akorn \
