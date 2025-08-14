@@ -17,6 +17,7 @@ import torch.nn.functional as F
 import math
 from ema_pytorch import EMA
 import datetime
+import random
 
 def apply_threshold(model, threshold):
     with torch.no_grad():
@@ -59,10 +60,7 @@ if __name__ == "__main__":
     parser.add_argument("--limit_cores_used", type=str2bool, default=False)
     parser.add_argument("--cpu_core_start", type=int, default=0, help="start core")
     parser.add_argument("--cpu_core_end", type=int, default=16, help="end core")
-    parser.add_argument(
-        "--data_root",
-        type=str,
-        default=None,
+    parser.add_argument("--data_root", type=str, default=None,
         help="Optional. Specify the root dir of the dataset. If None, use a default path set for each dataset",
     )
     parser.add_argument("--batchsize", type=int, default=100)
@@ -86,9 +84,20 @@ if __name__ == "__main__":
     parser.add_argument("--init_omg", type=float, default=0.1)
     parser.add_argument("--nl", type=str2bool, default=True)
     parser.add_argument("--ksize", type=int, default=9, help="kernel size for KLayer")
-    parser.add_argument("--bp_steps", type=int, default=None, help="number of back propagation steps in KLayer")
-
+    parser.add_argument("--bp_steps", type=int, default=None, help="number of back propagation steps in KLayer. If loss is itp, automatically set to None")
     parser.add_argument("--speed_test", action="store_true")
+
+    # loss choices
+    parser.add_argument("--loss", type=str, default="ce", choices=["ce", "align_energy", "ipt"], help="how to compute loss, cross_entropy or align_energy")
+
+    # --- Align (Koyama-Hayashi-Takashiro loss) ---
+    parser.add_argument("--align_energy_steps", type=int, default=None, help="how to compute loss, cross_entropy or align_energy")
+    parser.add_argument("--align_energy_tau", type=float, default=1.0,  help="temperature for energy weights (more uniform when large)")
+    
+    # --- Incremental Progress Training (Algorithm 1 in Bansal et al, 2022) ---
+    parser.add_argument("--ipt_alpha", type=float, default=0.1, help="Weight α for L = (1-α)*L_full + α*L_prog")
+    parser.add_argument("--ipt_k_min", type=int, default=1, help="Minimum extra steps k for progressive branch")
+    parser.add_argument("--ipt_k_max", type=int, default=None, help="Maximum extra steps k (defaults to T if None)")
 
     args = parser.parse_args()
 
@@ -299,18 +308,103 @@ if __name__ == "__main__":
             net.train()
             ema.train()
             X, Y, is_input = X.to(torch.int32).cuda(), Y.cuda(), is_input.cuda()
+            # 変数名	   形状（例）       dtype                    内容
+            # X 	     [B, 9, 9]	    torch.int32	    整数盤面：空白 = 0, 手がかりの数字 = 1–9
+            # Y	         [B, 9, 9, 9]	torch.float32	1-hot 正解：9 クラス（数字 1–9）の one-hot
+            # is_input	 [B, 9, 9]	    torch.float32	手がかりマスク：そのマスに与えられた数字があるか（1 or 0）
 
             if args.speed_test:
                 start = torch.cuda.Event(enable_timing=True)
                 end = torch.cuda.Event(enable_timing=True)
                 start.record()
 
-            out = net(X, is_input)
             
-            out = out.reshape(-1, 9)
-            Y = Y.argmax(dim=-1).reshape(-1)
-            
-            loss = criterion(out, Y).mean()
+            if args.loss == "align_energy" and args.L == 1: # 一旦L=1のときのみ考慮
+                ret = net(X, is_input, return_xs=True, return_es=True)
+                out, xs, es = ret[:3]
+                E_all  = torch.stack(es[0])[1:,:] # <- (T+1) * B tensor
+
+                steps = args.T if args.align_energy_steps is None else args.align_energy_steps
+                steps = min(steps, E_all.shape[0])
+                E_sel = E_all[-steps:, :]                 # [steps, B]
+                
+                def logits_from_state(net, x_t):
+                    # readout: x_t -> c_t,  out: c_t -> [B,9,H,W] を想定
+                    readout = net.layers[0][1]           # ← もし違えば適宜変更（例: [0][3] など）
+                    c_t = readout(x_t)
+                    return net.out(c_t).permute(0, 2, 3, 1)  # [B,H,W,9]
+
+                # readout = net.layers[0][1]
+                # c_to_output = lambda c: net.out(c).permute(0, 2, 3, 1) <- lambda にすると勾配流れないんだったかも
+
+                xs_sel = xs[0][-steps:]                   # list of length=steps, each [B,C,H,W]
+                interim_outs = [logits_from_state(net, x_t) for x_t in xs_sel]
+
+                Y = Y.argmax(dim=-1).reshape(-1)   # [B, 9, 9, 9] -> [B*9*9] (vector)
+
+                interim_losses = [
+                    criterion(out.reshape(-1,9), Y).reshape(X.shape[0],-1).mean(dim=1)
+                    for out in interim_outs
+                ]
+                interim_losses_ten = torch.stack(interim_losses, dim=0) # [steps, B]
+
+                E_center = E_sel - E_sel.mean(dim=0, keepdim=True)
+                meas = torch.softmax(-E_center / max(1e-6, args.align_energy_tau), dim=0)  # [steps, B]
+                #meas = nn.Softmax(dim=0)(-es_align_mz) # measure, or wights to evaluate energy with, align_energy_steps * B
+
+                loss = (interim_losses_ten * meas).sum(dim=0).mean()
+            elif args.loss == "ipt" and args.L == 1: # 一旦L=1のときのみ考慮
+                # -------- Incremental Progress Training (Algorithm 1 in Bansal et al, 2022) --------
+                # Where T/bp_steps live:
+                #   - T は net.T
+                #   - bp_steps は 各 KLayer (net.layers[?][0]).bp_steps
+                T_total = getattr(net, "T")
+                k_max   = args.ipt_k_max or T_total
+                k_min   = min(args.ipt_k_min, k_max)
+                k       = random.randint(k_min, k_max)                # extra steps
+                n_max   = max(0, T_total - k)
+                n       = random.randint(0, n_max) if n_max > 0 else 0  # start index
+                
+                # Progressive branch: run n+k steps, but only last k backprop
+                net.T = n + k
+                net.layers[0][0].bp_steps = k
+                #setattr(net, "bp_steps", k)
+                out_prog = net(X, is_input)
+                out_prog = out_prog.reshape(-1, 9)
+                Y_flat   = Y.argmax(dim=-1).reshape(-1)
+                loss_prog = criterion(out_prog, Y_flat).mean()
+
+                # Full branch: run full T with user/default bp_steps
+                net.T = T_total
+                net.layers[0][0].bp_steps = None
+                out_full = net(X, is_input)
+                out_full = out_full.reshape(-1, 9)
+                loss_full = criterion(out_full, Y_flat).mean()
+
+                # Blend losses
+                alpha = args.ipt_alpha
+                loss  = (1.0 - alpha) * loss_full + alpha * loss_prog
+
+                # Maybe unnecessary, restore attrs
+                net.T = T_total
+                net.layers[0][0].bp_steps = None
+                #setattr(net, "T", old_T)
+                #setattr(net, "bp_steps", None) #old_bp if old_bp is not None else args.bp_steps)
+
+                if not args.no_wandb:
+                    wandb.log({
+                        "train/loss_full": loss_full.item(),
+                        "train/loss_prog": loss_prog.item(),
+                        "train/k": k, "train/n": n, "train/T_prog": n + k
+                    })
+
+
+            else:
+                out = net(X, is_input)
+                out = out.reshape(-1, 9)           # [B, 9, 9, 9] -> [B*9*9, 9]
+                Y = Y.argmax(dim=-1).reshape(-1)   # [B, 9, 9, 9] -> [B*9*9] (vector)
+                
+                loss = criterion(out, Y).mean()    #  -> shape: [B*9*9] (vector) -> scalar
             
             optimizer.zero_grad()
             loss.backward()
