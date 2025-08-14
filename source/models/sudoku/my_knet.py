@@ -89,7 +89,7 @@ class MySudokuAKOrN(nn.Module):
         es = []
 
         # generate random oscillatores
-        if self.fixed_noise:
+        if self.fixed_noise: #<- always False
             n = torch.randn(
                 *(c.shape), generator=torch.Generator(device="cpu").manual_seed(42)
             ).to(c.device)
