@@ -63,7 +63,7 @@ def compute_T_eval_list(T_train, specs):
 
 def run_eval(model_path, arch, evalp, wandb_opt, run_name_base, extra_flags):
     cmd = [
-        "python", "eval_sudoku_wandb.py",
+        "python", "scripts/eval_sudoku_wandb.py",
         "--model_path", str(model_path),
         "--model", "akorn",
         "--L", str(arch["L"]), "--T", str(evalp["T_eval"]), "--ch", str(arch["ch"]), "--N", str(arch["N"]),

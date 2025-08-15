@@ -362,6 +362,7 @@ if __name__ == "__main__":
             "model/total_params": total_params,
             "config/dataset": args.data,
             "config/K_samples": K,
+            "config/T_eval": args.T,
         }
         
         if energy_stats:
@@ -399,22 +400,22 @@ if __name__ == "__main__":
         plt.close()
         
         wandb.log(final_results)
-        
+
         # Create summary table
-        summary_table = wandb.Table(
-            columns=["Metric", "Value"],
-            data=[
-                ["Board Accuracy", f"{accuracy_vote:.4f}"],
-                ["Blank Digits Accuracy", f"{blank_accuracy:.4f}"],
-                ["Given Digits Accuracy", f"{given_accuracy:.4f}"],
-                ["Total Puzzles", totals],
-                ["Correct Puzzles", corrects_vote],
-                ["Dataset", dataset_name],
-                ["K Samples", K],
-                ["Model Parameters", f"{total_params:,}"],
-            ]
-        )
-        wandb.log({"eval/summary_table": summary_table})
+        # summary_table = wandb.Table(
+        #     columns=["Metric", "Value"],
+        #     data=[
+        #         ["Board Accuracy", f"{accuracy_vote:.4f}"],
+        #         ["Blank Digits Accuracy", f"{blank_accuracy:.4f}"],
+        #         ["Given Digits Accuracy", f"{given_accuracy:.4f}"],
+        #         ["Total Puzzles", totals],
+        #         ["Correct Puzzles", corrects_vote],
+        #         ["Dataset", dataset_name],
+        #         ["K Samples", K],
+        #         ["Model Parameters", f"{total_params:,}"],
+        #     ]
+        # )
+        # wandb.log({"eval/summary_table": summary_table})
         
         wandb.finish()
 
