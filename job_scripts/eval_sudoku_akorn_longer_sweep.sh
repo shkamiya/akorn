@@ -51,12 +51,14 @@ for result_dir in results/sudoku_sweep_altered_loss_*; do
                 # loss=$(grep "^loss:" "$config_file" | awk '{print $2}')
                 
                 echo "Parameters: L=$L, N=$N, T=$T, ch=$ch, loss=$loss"
-                
+                T_longer=$((2*T))
+                echo "In this evaluation, model thinks 2x longer: inference time T_infer=$T_longer"
+
                 # 各モデルファイルについて評価を実行
                 for model_file in "$result_dir"/ema_*.pth; do
                     if [ -f "$model_file" ]; then
                         model_name=$(basename "$model_file" .pth)
-                        echo "Evaluating $model_name with parameters L=$L, N=$N, T=$T, ch=$ch"
+                        echo "Evaluating $model_name with parameters L=$L, N=$N, T=$T_longer, ch=$ch"
                         
                         singularity exec --nv \
                           --bind $(pwd):/workspace \
@@ -65,7 +67,7 @@ for result_dir in results/sudoku_sweep_altered_loss_*; do
                           python scripts/eval_sudoku.py \
                               --model_path "$model_file" \
                               --model akorn \
-                              --L "$L" --T "$T" --ch "$ch" --N "$N" \
+                              --L "$L" --T "$T_longer" --ch "$ch" --N "$N" \
                               --data ood --K 64 \
                               #--exp_name "eval_${model_name}_T${T}_loss${loss}" 2>&1 | tee "logs/eval_${model_name}_T${T}_loss${loss}.log"
                         

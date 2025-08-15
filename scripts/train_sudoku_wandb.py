@@ -18,6 +18,8 @@ import math
 from ema_pytorch import EMA
 import datetime
 import random
+from pathlib import Path
+import json
 
 def apply_threshold(model, threshold):
     with torch.no_grad():
@@ -167,7 +169,7 @@ if __name__ == "__main__":
             "bp_steps": args.bp_steps,
         }
 
-        job_id = os.environ.get("PBS_JOBID", "local")
+        job_id = os.environ.get("PBS_JOBID") or os.environ.get("PJM_JOBID") or "local"
         if args.wandb_run_name is not None:
             wandb_run_name = args.wandb_run_name.format(**vars(args), job_id=job_id)
         else:
@@ -181,14 +183,52 @@ if __name__ == "__main__":
             config=wandb_config,
         )
     
-    if args.save_dir is None:
-        current_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-        args.save_dir = f"./results/{args.exp_name}_{current_time}"
+    # wandb.init(...) の直後に
+    run = wandb.run if not args.no_wandb else None
+
+    # save_dirを決める（Run ID 基準）
+    if not args.no_wandb:
+        if args.save_dir is None:
+            args.save_dir = f"./results/{args.exp_name}/{run.id}"
+        # W&B上のconfigにも反映（後から見返せるように）
+        wandb.config.update({"save_dir": args.save_dir}, allow_val_change=True)
+    else:
+        if args.save_dir is None:
+            current_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+            args.save_dir = f"./results/{args.exp_name}_{current_time}"
+    # if args.save_dir is None:
+    #     current_time = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+    #     args.save_dir = f"./results/{args.exp_name}_{current_time}"
     jobdir = args.save_dir
     #jobdir = f"runs/{args.exp_name}/"
     
     # Create job directory
     os.makedirs(jobdir, exist_ok=True)
+
+    # jobdir 作成直後が良い
+    if not args.no_wandb:
+        rd = Path(jobdir)
+        # 1) 人間が見つけやすいテキスト
+        rd.joinpath("wandb_run.txt").write_text(
+            f"id={run.id}\nname={run.name}\nproject={run.project}\n"
+            f"entity={run.entity}\nurl={run.url}\n"
+        )
+        # 2) config 丸ごと保存（yaml優先、yaml無ければjson）
+        try:
+            import yaml as _yaml
+            rd.joinpath("config.yaml").write_text(
+                _yaml.safe_dump(wandb.config.as_dict(), sort_keys=True)
+            )
+        except Exception:
+            rd.joinpath("config.json").write_text(
+                json.dumps(wandb.config.as_dict(), indent=2)
+            )
+        # 3) 相互symlink
+        try:
+            rd.joinpath("wandb_run").symlink_to(Path(run.dir).resolve())
+            Path(run.dir).joinpath("results_dir").symlink_to(rd.resolve())
+        except Exception as e:
+            print(f"[warn] symlink failed: {e}")
 
     # only compute digit-wise accuracy
     from source.evals.sudoku.evals import compute_board_accuracy

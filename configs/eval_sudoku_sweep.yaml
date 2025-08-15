@@ -1,0 +1,18 @@
+# 評価対象
+results_glob: "results/sudoku_sweep_altered_loss_*_*"   # run_idを末尾に付けた想定（..._as5w7pqd）
+ckpts: ["ema_99.pth", "ema_model.pth", "model.pth"]                  # ここに model.pth などを足してもOK
+
+# 既定のW&B設定（--no_wandbにしたい時は use_wandb: false）
+use_wandb: true
+wandb_project: "sudoku_eval_sweep"
+wandb_entity: "shunsuke-kamiya-the-university-of-tokyo"
+
+# 推論パラメータのグリッド
+eval_params:
+  T_eval: ["x1", "x2", "x4", "x8"]        # "xN" は学習時TのN倍。絶対値(例: 32)もOK。混在可。
+  K: [1, 16, 256, 2048]               # vote 数
+  evote_type: ["last"]        # ["last", "sum"] など
+  data: ["ood"]               # 既定は OOD extreme。in-domain も回すなら ["ood","in"] など
+
+# 実行系
+extra_flags: []               # 例: ["--minimum_chunk","4"]
